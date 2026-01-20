@@ -549,13 +549,13 @@ Summary:
 `ipc.db` is the primary settings DB seeded/reset by `db_init.sh` if revisions differ; JSON configs in `*.db` hold cloud/IOT settings; `systemcfg.db` keeps identity/SignAddr; `app.cfg` (cloud/onvif/rtsp/telnet flags) and `board.cfg` (PTZ GPIO/PWM, audio, IR) describe capabilities.
 
 **Credentials in clear**
-`userdata/shadow` sets root with no password (default hash in `/squashfs-root/shadow` is `root:z1Y**********` but overwritten at boot); Wi-Fi STA creds in `ifcfg.wlan0` (`MyTestWifi01` / `Mypassword1234`); provisioning AP in `ap_mode.cfg` uses SSID `Care-AP<sn>`, `auth=none`, key `Aa12345678`. IDA strings noted in `notes.txt`/`apollo_report.txt` show a hardcoded RTSP template `user=admin_password=tlJwpbo6`.
+`userdata/shadow` sets root with no password (default hash in `/squashfs-root/shadow` is `root:z1Y**********` but overwritten at boot); Wi-Fi STA creds in `ifcfg.wlan0` (`MyTestWifi01` / `Mypassword1234`); provisioning AP in `ap_mode.cfg` uses SSID `Care-AP<sn>`, `auth=none`, key `Aa12345678`. IDA strings show a hardcoded RTSP template `user=admin_password=tlJwpbo6`.
 
 **Services/protocols**
 `app.cfg` enables `cloud_enable`, `cloud_zj`, `rtsp=yes` (audio on), `onvif=yes`, `telnetd=yes`, `web=no`. Default ports from `myinfo.sh` are HTTP 80, HTTPS 443, RTSP 8554, ONVIF 6688. Wi-Fi control uses `wifi_mode.sh` (wpa_supplicant/hostapd). NTP hits `cn.ntp.org.cn` and `time.windows.com`. PTZ is PWM-driven (`board.cfg`), with video pipeline tuned in `sysinfo/setting`.
 
 **Cloud and endpoints**
-`systemcfg.db` points to `svr.smartcloudcon.com` with AppID `1657353*********`, CompanyID `0000213*********`, device DID `120001*********`. `corecfg.db` sets `linkIpv4 34.40.41.193`, `linkPort 25515`, `linkSrvid CPLink:20001-10-DE-20250911115034.449`, `LinkEncKey 132ded*********`, `LinkEncLoad dd06dc6*********`. `groupcfg.db` uses `Ipv4 130.162.37.6`, `Port 25006`, `ConnToken 10:BG:af2f5*********`, `OwnerToken 16000102c09471e*********`. Strings in `apollo_report.txt` also reference `cloud.ygtek.cn`.
+`systemcfg.db` points to `svr.smartcloudcon.com` with AppID `1657353*********`, CompanyID `0000213*********`, device DID `120001*********`. `corecfg.db` sets `linkIpv4 34.40.41.193`, `linkPort 25515`, `linkSrvid CPLink:20001-10-DE-20250911115034.449`, `LinkEncKey 132ded*********`, `LinkEncLoad dd06dc6*********`. `groupcfg.db` uses `Ipv4 130.162.37.6`, `Port 25006`, `ConnToken 10:BG:af2f5*********`, `OwnerToken 16000102c09471e*********`. Strings in `apollo` also reference `cloud.ygtek.cn`.
 
 **Hardware/profile**
 `userdata/hw_info` and `prodid/PQEW4-01/config/prod_info` show Fullhan FH8852V2X0 SoC, Wi-Fi RTL8188FU/SSV6155P, PTZ present, audio in/out, sensors `sc3338_mipi`/`gc4653`/`gc3003`, firmware `fw_ver v220901.1359`, timezone set to EET (`devcfg.db`).
