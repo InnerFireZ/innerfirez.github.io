@@ -42,6 +42,7 @@ So many ports for one tiny camera right?
 
 ## Hardware Access
 I tore down the camera and found a small PCB with three suspicious pins at the edge of the board. They measured 3.3V, which usually indicates a UART debugging interface. 
+So lets connect it.
 
 ![UART Header on PCB](/images/pcb_uart_header.png)
 ![UART-2 Header on PCB](/images/pcb_uart_connect.png)
