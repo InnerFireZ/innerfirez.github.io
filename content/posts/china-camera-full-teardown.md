@@ -22,7 +22,7 @@ The unit discussed in this write-up is the ANJIA AJ-L73PA1250 PTZ. It’s a low-
 But what is the real cost of using a cheap PTZ camera, even one that claims to offer features like person detection?
 
 ![Camera Exterior and Label](/images/camera_exterior_label.png)
-*Figure 1: Camera exterior and model label (placeholder).*
+*Figure 1: Camera exterior.*
 
 ## Initial Recon
 I started with the camera itself since the alert came from it. An nmap scan showed Telnet and RTSP on port 8554 (default RTSP is 554), plus ONVIF ports. Telnet was the most interesting because it exposes the OS directly. I attempted brute force on Telnet and RTSP but without success...
@@ -45,7 +45,7 @@ I tore down the camera and found a small PCB with three suspicious pins at the e
 
 ![UART Header on PCB](/images/pcb_uart_header.png)
 ![UART-2 Header on PCB](/images/pcb_uart_connect.png)
-*Figure 2 and 3: UART header pins on the main PCB (placeholder).*
+*Figure 2 and 3: UART header pins on the main PCB.*
 
 ## Raw UART Console
 Captured with `picocom` at 112500 baud. I am including the full raw log for reference.
