@@ -1,0 +1,45 @@
+baseURL = 'https://innerfirez.github.io/'
+languageCode = 'en-us'
+title = 'Messing with Code So You Don’t Have To'
+theme = 'PaperMod'
+
+[markup.goldmark.renderer]
+unsafe = true
+
+[params]
+    env = 'production'
+    author = "Zachary Mitev"
+    description = "Reverse engineering, firmware analysis, and hardware security research."
+
+    defaultTheme = 'dark'
+    disableThemeToggle = true
+
+    ShowCodeCopyButtons = true
+    ShowReadingTime = true
+    ShowWordCount = true
+    ShowBreadCrumbs = true
+    ShowPostNavLinks = true
+    ShowLastMod = true
+    enableSearch = true
+
+socialIcons = [
+    { name = "github", url = "https://github.com/innerfirez" },
+    { name = "x", url = "https://x.com/zmitev01" }
+]
+
+[params.profileMode]
+    enabled = true
+    title = "Root Access to Knowledge"
+    subtitle = "Reverse Engineering · Experiments · Hardware Hacking"
+    imageUrl = "https://avatars.githubusercontent.com/u/47434937"
+    imageTitle = "My Avatar"
+    imageWidth = 120
+    imageHeight = 120
+
+    [[params.profileMode.buttons]]
+        name = "Read Write-ups"
+        url = "posts"
+
+    [[params.profileMode.buttons]]
+        name = "My GitHub"
+        url = "https://github.com/innerfirez"

