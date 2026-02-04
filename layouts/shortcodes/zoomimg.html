@@ -1,0 +1,12 @@
+{{- $src := .Get "src" -}}
+{{- $alt := .Get "alt" | default "" -}}
+{{- $id := printf "zoomimg-%d" .Ordinal -}}
+
+<a href="#{{ $id }}" class="zoomimg-thumb">
+  <img src="{{ $src }}" alt="{{ $alt }}">
+</a>
+
+<a href="#" id="{{ $id }}" class="zoomimg-lightbox" aria-label="Close image zoom">
+  <span class="zoomimg-close" aria-hidden="true">×</span>
+  <img src="{{ $src }}" alt="{{ $alt }}">
+</a>

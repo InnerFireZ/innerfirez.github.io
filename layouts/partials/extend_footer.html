@@ -1,0 +1,11 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.0.8/medium-zoom.min.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (typeof mediumZoom === "function") {
+      mediumZoom(".post-content img");
+    } else {
+      console.log("medium-zoom did not load");
+    }
+  });
+</script>

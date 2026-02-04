@@ -68,7 +68,7 @@
 The cameras are isolated on a separate network, but I wanted to understand what was happening, so I decided to reverse engineer both the camera and the Android app to find out what was really going on.
 ...</p>
   </div>
-  <footer class="entry-footer"><span title='2026-01-13 00:00:00 +0000 UTC'>January 13, 2026</span>&nbsp;·&nbsp;<span>20 min</span>&nbsp;·&nbsp;<span>4110 words</span>&nbsp;·&nbsp;<span>Zachary Mitev</span></footer>
+  <footer class="entry-footer"><span title='2026-01-13 00:00:00 +0000 UTC'>January 13, 2026</span>&nbsp;·&nbsp;<span>20 min</span>&nbsp;·&nbsp;<span>4105 words</span>&nbsp;·&nbsp;<span>Zachary Mitev</span></footer>
   <a class="entry-link" aria-label="post link to Reverse Engineering an ANJIA AJ-L73PA1250 PTZ IP Camera" href="http://localhost:1313/posts/china-camera-full-teardown/"></a>
 </article>
     </main>
@@ -86,7 +86,18 @@ The cameras are isolated on a separate network, but I wanted to understand what 
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
         <path d="M12 6H0l6-6z" />
     </svg>
-</a>
+</a><script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.0.8/medium-zoom.min.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (typeof mediumZoom === "function") {
+      mediumZoom(".post-content img");
+    } else {
+      console.log("medium-zoom did not load");
+    }
+  });
+</script>
+
 
 <script>
     let menu = document.getElementById('menu');
