@@ -4,6 +4,7 @@ title = 'Messing with Code So You Don’t Have To'
 theme = 'PaperMod'
 [markup.goldmark.renderer]
 unsafe = true
+enableRobotsTXT = true
 
 [services]
   [services.googleAnalytics]
