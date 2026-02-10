@@ -2,9 +2,11 @@ baseURL = 'https://innerfirez.github.io/'
 languageCode = 'en-us'
 title = 'Messing with Code So You Don’t Have To'
 theme = 'PaperMod'
+enableRobotsTXT = true
+
 [markup.goldmark.renderer]
 unsafe = true
-enableRobotsTXT = true
+
 
 [services]
   [services.googleAnalytics]
