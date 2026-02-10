@@ -2,9 +2,12 @@ baseURL = 'https://innerfirez.github.io/'
 languageCode = 'en-us'
 title = 'Messing with Code So You Don’t Have To'
 theme = 'PaperMod'
-googleAnalytics = "G-FFPMFEZ0GD"
 [markup.goldmark.renderer]
 unsafe = true
+
+[services]
+  [services.googleAnalytics]
+    ID = "G-FFPMFEZ0GD"
 
 [params]
     env = 'production'
