@@ -1,6 +1,6 @@
 ---
 title: "Take Down The Stealers For Fun"
-date: 2026-02-03
+date: 2026-03-11
 author: "Zachary Mitev"
 draft: false
 tags: ["threat-intel", "malware", "stealer", "hacking", "security"]
