@@ -5,6 +5,12 @@
     <loc>http://localhost:1313/tags/flask/</loc>
     <lastmod>2026-02-03T00:00:00+00:00</lastmod>
   </url><url>
+    <loc>http://localhost:1313/tags/hacking/</loc>
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/malware/</loc>
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>http://localhost:1313/tags/maps/</loc>
     <lastmod>2026-02-03T00:00:00+00:00</lastmod>
   </url><url>
@@ -23,7 +29,13 @@
     <loc>http://localhost:1313/tags/security/</loc>
     <lastmod>2026-02-03T00:00:00+00:00</lastmod>
   </url><url>
+    <loc>http://localhost:1313/tags/stealer/</loc>
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>http://localhost:1313/tags/</loc>
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/posts/take-down-the-stealers-for-fun/</loc>
     <lastmod>2026-02-03T00:00:00+00:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/tags/threat-intel/</loc>

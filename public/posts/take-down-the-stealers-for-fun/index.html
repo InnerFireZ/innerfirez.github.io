@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto" data-theme="dark">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Take Down The Stealers For Fun | Messing with Code So You Don’t Have To</title>
+<meta name="keywords" content="threat-intel, malware, stealer, hacking, security">
+<meta name="description" content="I want to share one old fun experience of taking down stealers and make quick interview with one of them.">
+<meta name="author" content="Zachary Mitev">
+<link rel="canonical" href="http://localhost:1313/posts/take-down-the-stealers-for-fun/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.da3211e5ef867bf2b75fd5a6515cfed7195c011e8ab735694e203810a827097b.css" integrity="sha256-2jIR5e&#43;Ge/K3X9WmUVz&#43;1xlcAR6KtzVpTiA4EKgnCXs=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/posts/take-down-the-stealers-for-fun/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-FFPMFEZ0GD"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-FFPMFEZ0GD');
+</script>
+
+
+
+
+<meta property="og:url" content="http://localhost:1313/posts/take-down-the-stealers-for-fun/">
+  <meta property="og:site_name" content="Messing with Code So You Don’t Have To">
+  <meta property="og:title" content="Take Down The Stealers For Fun">
+  <meta property="og:description" content="I want to share one old fun experience of taking down stealers and make quick interview with one of them.">
+  <meta property="og:locale" content="en-us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-02-03T00:00:00+00:00">
+    <meta property="article:modified_time" content="2026-02-03T00:00:00+00:00">
+    <meta property="article:tag" content="Threat-Intel">
+    <meta property="article:tag" content="Malware">
+    <meta property="article:tag" content="Stealer">
+    <meta property="article:tag" content="Hacking">
+    <meta property="article:tag" content="Security">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Take Down The Stealers For Fun">
+<meta name="twitter:description" content="I want to share one old fun experience of taking down stealers and make quick interview with one of them.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "http://localhost:1313/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Take Down The Stealers For Fun",
+      "item": "http://localhost:1313/posts/take-down-the-stealers-for-fun/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Take Down The Stealers For Fun",
+  "name": "Take Down The Stealers For Fun",
+  "description": "I want to share one old fun experience of taking down stealers and make quick interview with one of them.",
+  "keywords": [
+    "threat-intel", "malware", "stealer", "hacking", "security"
+  ],
+  "articleBody": "Summary We’ve all seen them: those sketchy emails with an attachment-usually a RAR archive or a fake PDF-that’s actually just malware waiting to steal your data. One day, I decided to finally do some analysis on these files to find out exactly what they do and where they’re sending our information.\nOver a short stretch of about a month or two, I kept getting the exact same type of phishing emails. They all seemed to point back to the same sender, so I started digging into it. The static analysis turned out to be pretty tough because of how these particular stealers operate. They basically scour your entire Windows system, trying to export every stored credential they can find from browsers, password managers, email clients, you name it.\nBut when I ran dynamic analysis on them, a really clear pattern emerged: they almost always relied on FTP-or sometimes SMTP servers-to upload the stolen credentials back to the attacker.\nIn today’s post, I’m going to walk you through exactly what I found. I’ll also share how this research unexpectedly led to a short interview with one of the people actually running these campaigns, and we’ll dive into why they do it in the first place.\nNetwork Analytics Here some screenshot from dynamic analytics of network activity of the stealer , when it grab all the data it uploaded on the server via FTP.\nNetwork Activity\nThe password is very strong but one of the problems clearly here is the plain text protocol - FTP. So, sometimes the length and entropy of the password is not really mater.\nConnecting to the Hacker’s FTP and Deleting the Logs I write one simple bash script that connects to the hacker FTP server list the number of logs and delete them.\nFTP connection\nI decided to automate the process. I spent some time setting up a script to automatically catch all their new stealers and wipe the victims’ data right off their servers. As you can imagine, this really started to piss them off.\n“fuck off”\nSure enough, I eventually logged in and found a new folder sitting there named “FUCK OFF.” Since I still had write permissions on their FTP server, I decided to leave a reply of my own. I created a new folder proposing that the owner and I find a secure place to chat.\nWanna be friends?\nAfter that, he dropped a Skype ID and we started talking. My goal was simple: figure out why and how they run these campaigns. In exchange, I promised to tell him exactly how I breached his server. It was the perfect bait to get him talking, and honestly, my plan was to block him the second I got my answers.\nBut he actually beat me to the punch and blocked me first.\nThank god I was taking screenshots in real-time. If you’ve ever dealt with Skype, you know that when someone blocks you, the entire chat history just vanishes. Because he pulled the plug so fast, I am missing the very last part of the conversation, but I managed to capture all the important stuff.\nHere is the chat I managed to capture before he cut me off. To get him to open up, I had to play along and make him think I was actually on his side. I’m almost positive he lied to me about his name, and maybe even his age, but honestly, that’s just how this game works…\nSkype Screenshots\nSkype Screenshots\nSkype Screenshots\nSkype Screenshots\nSkype Screenshots\nSkype Screenshots\nSkype Screenshots\nSkype Screenshots\nSkype Screenshots\nSkype Screenshots\nSkype Screenshots\nSkype Screenshots\nConclusion Keep in mind, that all went down back in 2020. Today, these types of attacks have evolved into something much harder to catch. Attackers are now using platforms like Discord bots and Telegram to exfiltrate data, which makes both static and dynamic analysis a lot tougher than it was back then.\nBut at the end of the day, if you are truly determined to figure out what an executable is doing under the hood, you can still crack it.\nThe biggest hurdle nowadays is that the domains they use for C2 (Command and Control) or exfiltration usually only stay alive for 24 hours—sometimes even less. Because they burn through infrastructure so fast, by the time you finally get your hands on the credentials for their server, it’s often too late to actually reach them.\n",
+  "wordCount" : "737",
+  "inLanguage": "en",
+  "datePublished": "2026-02-03T00:00:00Z",
+  "dateModified": "2026-02-03T00:00:00Z",
+  "author":{
+    "@type": "Person",
+    "name": "Zachary Mitev"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/posts/take-down-the-stealers-for-fun/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Messing with Code So You Don’t Have To",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Messing with Code So You Don’t Have To (Alt + H)">Messing with Code So You Don’t Have To</a>
+            <div class="logo-switches">
+            </div>
+        </div>
+        <ul id="menu">
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Take Down The Stealers For Fun
+    </h1>
+    <div class="post-meta"><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>4 min</span>&nbsp;·&nbsp;<span>737 words</span>&nbsp;·&nbsp;<span>Zachary Mitev</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#summary" aria-label="Summary">Summary</a></li>
+                <li>
+                    <a href="#network-analytics" aria-label="Network Analytics">Network Analytics</a></li>
+                <li>
+                    <a href="#connecting-to-the-hackers-ftp-and-deleting-the-logs" aria-label="Connecting to the Hacker&rsquo;s FTP and Deleting the Logs">Connecting to the Hacker&rsquo;s FTP and Deleting the Logs</a></li>
+                <li>
+                    <a href="#conclusion" aria-label="Conclusion">Conclusion</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h2 id="summary">Summary<a hidden class="anchor" aria-hidden="true" href="#summary">#</a></h2>
+<p>We&rsquo;ve all seen them: those sketchy emails with an attachment-usually a RAR archive or a fake PDF-that&rsquo;s actually just malware waiting to steal your data. One day, I decided to finally do some analysis on these files to find out exactly what they do and where they&rsquo;re sending our information.</p>
+<p>Over a short stretch of about a month or two, I kept getting the exact same type of phishing emails. They all seemed to point back to the same sender, so I started digging into it. The static analysis turned out to be pretty tough because of how these particular stealers operate. They basically scour your entire Windows system, trying to export every stored credential they can find from browsers, password managers, email clients, you name it.</p>
+<p>But when I ran dynamic analysis on them, a really clear pattern emerged: they almost always relied on FTP-or sometimes SMTP servers-to upload the stolen credentials back to the attacker.</p>
+<p>In today&rsquo;s post, I&rsquo;m going to walk you through exactly what I found. I&rsquo;ll also share how this research unexpectedly led to a short interview with one of the people actually running these campaigns, and we&rsquo;ll dive into why they do it in the first place.</p>
+<h2 id="network-analytics">Network Analytics<a hidden class="anchor" aria-hidden="true" href="#network-analytics">#</a></h2>
+<p>Here some screenshot from dynamic analytics of network activity of the stealer , when it grab all the data it uploaded on the server via FTP.</p>
+<p><img alt="map view" loading="lazy" src="/images/hk/network-activity.png">
+<em>Network Activity</em></p>
+<p>The password is very strong but one of the problems clearly here is the plain text protocol - FTP. So, sometimes the length and entropy of the password is not really mater.</p>
+<h2 id="connecting-to-the-hackers-ftp-and-deleting-the-logs">Connecting to the Hacker&rsquo;s FTP and Deleting the Logs<a hidden class="anchor" aria-hidden="true" href="#connecting-to-the-hackers-ftp-and-deleting-the-logs">#</a></h2>
+<p>I write one simple bash script that connects to the hacker FTP server list the number of logs and delete them.</p>
+<p><img alt="map view" loading="lazy" src="/images/hk/ftp-connection.png">
+<em>FTP connection</em></p>
+<p>I decided to automate the process. I spent some time setting up a script to automatically catch all their new stealers and wipe the victims&rsquo; data right off their servers. As you can imagine, this really started to piss them off.</p>
+<p><img alt="map view" loading="lazy" src="/images/hk/fuck-off-message.png">
+<em>&ldquo;fuck off&rdquo;</em></p>
+<p>Sure enough, I eventually logged in and found a new folder sitting there named &ldquo;FUCK OFF.&rdquo; Since I still had write permissions on their FTP server, I decided to leave a reply of my own. I created a new folder proposing that the owner and I find a secure place to chat.</p>
+<p><img alt="map view" loading="lazy" src="/images/hk/attempt-to-contact.png">
+<em>Wanna be friends?</em></p>
+<p>After that, he dropped a Skype ID and we started talking. My goal was simple: figure out why and how they run these campaigns. In exchange, I promised to tell him exactly how I breached his server. It was the perfect bait to get him talking, and honestly, my plan was to block him the second I got my answers.</p>
+<p>But he actually beat me to the punch and blocked me first.</p>
+<p>Thank god I was taking screenshots in real-time. If you&rsquo;ve ever dealt with Skype, you know that when someone blocks you, the entire chat history just vanishes. Because he pulled the plug so fast, I am missing the very last part of the conversation, but I managed to capture all the important stuff.</p>
+<p>Here is the chat I managed to capture before he cut me off. To get him to open up, I had to play along and make him think I was actually on his side. I&rsquo;m almost positive he lied to me about his name, and maybe even his age, but honestly, that&rsquo;s just how this game works&hellip;</p>
+<p><img alt="map view" loading="lazy" src="/images/hk/skype-1.png">
+<em>Skype Screenshots</em></p>
+<p><img alt="map view" loading="lazy" src="/images/hk/skype-2.png">
+<em>Skype Screenshots</em></p>
+<p><img alt="map view" loading="lazy" src="/images/hk/skype-3.png">
+<em>Skype Screenshots</em></p>
+<p><img alt="map view" loading="lazy" src="/images/hk/skype-4.png">
+<em>Skype Screenshots</em></p>
+<p><img alt="map view" loading="lazy" src="/images/hk/skype-5.png">
+<em>Skype Screenshots</em></p>
+<p><img alt="map view" loading="lazy" src="/images/hk/skype-6.png">
+<em>Skype Screenshots</em></p>
+<p><img alt="map view" loading="lazy" src="/images/hk/skype-7.png">
+<em>Skype Screenshots</em></p>
+<p><img alt="map view" loading="lazy" src="/images/hk/skype-8.png">
+<em>Skype Screenshots</em></p>
+<p><img alt="map view" loading="lazy" src="/images/hk/skype-9.png">
+<em>Skype Screenshots</em></p>
+<p><img alt="map view" loading="lazy" src="/images/hk/skype-10.png">
+<em>Skype Screenshots</em></p>
+<p><img alt="map view" loading="lazy" src="/images/hk/skype-11.png">
+<em>Skype Screenshots</em></p>
+<p><img alt="map view" loading="lazy" src="/images/hk/skype-12.png">
+<em>Skype Screenshots</em></p>
+<h2 id="conclusion">Conclusion<a hidden class="anchor" aria-hidden="true" href="#conclusion">#</a></h2>
+<p>Keep in mind, that all went down back in 2020. Today, these types of attacks have evolved into something much harder to catch. Attackers are now using platforms like Discord bots and Telegram to exfiltrate data, which makes both static and dynamic analysis a lot tougher than it was back then.</p>
+<p>But at the end of the day, if you are truly determined to figure out what an executable is doing under the hood, you can still crack it.</p>
+<p>The biggest hurdle nowadays is that the domains they use for C2 (Command and Control) or exfiltration usually only stay alive for 24 hours—sometimes even less. Because they burn through infrastructure so fast, by the time you finally get your hands on the credentials for their server, it&rsquo;s often too late to actually reach them.</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/threat-intel/">Threat-Intel</a></li>
+      <li><a href="http://localhost:1313/tags/malware/">Malware</a></li>
+      <li><a href="http://localhost:1313/tags/stealer/">Stealer</a></li>
+      <li><a href="http://localhost:1313/tags/hacking/">Hacking</a></li>
+      <li><a href="http://localhost:1313/tags/security/">Security</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="next" href="http://localhost:1313/posts/watch-dogs-threat-intel-platform/">
+    <span class="title">Next »</span>
+    <br>
+    <span>Watch Dogs: Torrent Peer Threat Intel for Bulgaria</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Messing with Code So You Don’t Have To</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a><script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.0.8/medium-zoom.min.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (typeof mediumZoom === "function") {
+      mediumZoom(".post-content img");
+    } else {
+      console.log("medium-zoom did not load");
+    }
+  });
+</script>
+
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
