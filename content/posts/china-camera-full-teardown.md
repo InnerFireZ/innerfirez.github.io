@@ -3,7 +3,7 @@ title: "Reverse Engineering an ANJIA PTZ IP Camera"
 date: 2026-01-13
 author: "Zachary Mitev"
 draft: false
-tags: ["CVE-2026-31077, hardware", "reverse-engineering", "uart", "ingenic-t31", "root-access"]
+tags: ["CVE-2026-31077", "hardware", "reverse-engineering", "UART", "ingenic-t31", "root-access", "backdoor"]
 showToc: true
 TocOpen: true
 description: "A technical reverse-engineering analysis of a low-cost PTZ IP camera, including UART access, firmware extraction, and undocumented backdoors - CVE-2026-31077"
@@ -651,7 +651,8 @@ However, given the number of embedded backdoors, the manufacturer could easily e
 
 I attempted to contact the vendor, but without success. The camera uses an app called “CareCamPro”, but the app developers told me that the camera manufacturer merely borrowed their application.
 
-After 6 months I got the CVE about this finding - CVE-2026-31077 from mitre.org. 
+Update:
+After 5 months I got the CVE about this finding - CVE-2026-31077 from mitre.org. 
 
 
 ## How we leveraged it (telnet + RTSP)
