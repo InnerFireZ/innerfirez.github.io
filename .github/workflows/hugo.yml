@@ -32,15 +32,14 @@ jobs:
         with:
           hugo-version: "0.147.9"
           extended: true
-      
+
+      - name: Build
+        run: hugo --minify --baseURL "https://innerfirez.github.io/"
+
       - name: Debug sitemap
         run: |
           echo "---- public/sitemap.xml ----"
           cat public/sitemap.xml
-          
-
-      - name: Build
-        run: hugo --minify
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
