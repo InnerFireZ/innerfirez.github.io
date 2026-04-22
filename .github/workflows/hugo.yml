@@ -32,6 +32,12 @@ jobs:
         with:
           hugo-version: "0.147.9"
           extended: true
+      
+      - name: Debug sitemap
+        run: |
+          echo "---- public/sitemap.xml ----"
+          cat public/sitemap.xml
+          
 
       - name: Build
         run: hugo --minify
