@@ -48,3 +48,13 @@ socialIcons = [
     [[params.profileMode.buttons]]
         name = "My GitHub"
         url = "https://github.com/innerfirez"
+
+[outputs]                                                                                                                                                                               
+    home     = ["HTML", "RSS", "sitemap"]                                                                                                                                                 
+    section  = ["HTML"]                                                                                                                                                                   
+    taxonomy = ["HTML"]                                     
+    term     = ["HTML"]                                                                                                                                                                   
+                                                            
+[sitemap]
+    changefreq = 'monthly'
+    priority = 0.5
