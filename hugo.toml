@@ -50,11 +50,12 @@ socialIcons = [
         url = "https://github.com/innerfirez"
 
 [outputs]                                                                                                                                                                               
-    home     = ["HTML", "RSS", "sitemap"]                                                                                                                                                 
+    home     = ["HTML", "RSS", "sitemap"]
     section  = ["HTML"]                                                                                                                                                                   
     taxonomy = ["HTML"]                                     
-    term     = ["HTML"]                                                                                                                                                                   
-                                                            
+    term     = ["HTML"]
+    page     = ["HTML"]
+                                                                                                                                                                                          
 [sitemap]
-    changefreq = 'monthly'
-    priority = 0.5
+    changefreq = 'monthly'                                                                                                                                                                
+    priority = 0.5      
