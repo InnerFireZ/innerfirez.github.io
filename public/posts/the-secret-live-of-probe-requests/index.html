@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto" data-theme="dark">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>The Secret live of Probe Requests | Messing with Code So You Don’t Have To</title>
+<meta name="keywords" content="WiFi, IoT, wireless, security, probe request, PoC, CVE-2026-566, mitsubishi">
+<meta name="description" content="The Secret Life of Probe Requests: How IoT Devices Use 802.11 Wireless Technology.">
+<meta name="author" content="Zachary Mitev">
+<link rel="canonical" href="http://localhost:1313/posts/the-secret-live-of-probe-requests/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.199042e659bc7245f5609d333d6c044eb554a0640849bb874e1dff8eb0f57209.css" integrity="sha256-GZBC5lm8ckX1YJ0zPWwETrVUoGQISbuHTh3/jrD1cgk=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/posts/the-secret-live-of-probe-requests/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-FFPMFEZ0GD"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-FFPMFEZ0GD');
+</script>
+
+
+
+
+
+<meta property="og:url" content="http://localhost:1313/posts/the-secret-live-of-probe-requests/">
+  <meta property="og:site_name" content="Messing with Code So You Don’t Have To">
+  <meta property="og:title" content="The Secret live of Probe Requests">
+  <meta property="og:description" content="The Secret Life of Probe Requests: How IoT Devices Use 802.11 Wireless Technology.">
+  <meta property="og:locale" content="en-us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-06-11T00:00:00+00:00">
+    <meta property="article:modified_time" content="2026-06-11T00:00:00+00:00">
+    <meta property="article:tag" content="WiFi">
+    <meta property="article:tag" content="IoT">
+    <meta property="article:tag" content="Wireless">
+    <meta property="article:tag" content="Security">
+    <meta property="article:tag" content="Probe Request">
+    <meta property="article:tag" content="PoC">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="The Secret live of Probe Requests">
+<meta name="twitter:description" content="The Secret Life of Probe Requests: How IoT Devices Use 802.11 Wireless Technology.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "http://localhost:1313/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "The Secret live of Probe Requests",
+      "item": "http://localhost:1313/posts/the-secret-live-of-probe-requests/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "The Secret live of Probe Requests",
+  "name": "The Secret live of Probe Requests",
+  "description": "The Secret Life of Probe Requests: How IoT Devices Use 802.11 Wireless Technology.",
+  "keywords": [
+    "WiFi", "IoT", "wireless", "security", "probe request", "PoC", "CVE-2026-566", "mitsubishi"
+  ],
+  "articleBody": "Introduction I was always curious about the wireless devices around me, and I spent a lot of time investigating them — not only the standard 802.11 WiFi but other “custom” RF technologies too.\nOnce, during my experimentation with WiFi protocols and how they actually work, I saw the well-known probe requests from one of my IoT devices that I had for a long time, which needed a specific WiFi AP(Access Point) to work. But what happens when this AP is not around it? It continuously sends probe requests over the air with the specific SSID name that it needs.\nThis is nothing new; people who work in cybersecurity know that this is how things work. There is also a well-known attack type called a “Karma Attack”, where you can make a dynamic AP that corresponds to the specific SSID that the device is searching for. So, if the device says, “I am looking for ‘MyHomeWifi’,” the attacker brings up an AP with the same name and waits for the device to try to connect.\nBut, from this comes one more problem. If you set the same type of encryption (for example, WPA2/WPA3 etc.), the device that searches for that SSID will send a Half Handshake to the AP. If we capture this, we can still crack it using an offline dictionary attack against the password of the original SSID. So, TL;DR: if you turn on the WiFi on your phone or IoT device (whether portable or not), it is possible for someone to crack the password of your saved networks just by bringing up an AP with the same name as the probe request that the device sends. Nothing new, right?\nBut what if we blacklist all the phone vendors (by MAC address, where is possible) to make space for IoT devices, and start this Android NetHunter APP around a big city? I should say that this public script search for all WiFi devices without looking for MAC but u can search for them manually by SSID name. To able to run this script you need GPS demon witch should listen on correspond port.\nI use script specifically for probe requests to find specific, repeatable patterns of SSIDs around the city. I use my specially configured phone for security-related stuff; it is rooted and has the necessary tools to make this happen easily and with minimal effort. I use the internal WiFi card and GPS on the phone to remove the need for additional hardware and make this really portable - All in one device.\nOnePlus7Pro\nThe Findings So, after a few attempts to collect probe requests around the city, I got some interesting repeatable SSIDs like “DefaultSSID” and “moduletest” (I haven’t investigated the latter yet, but it is a completely different device). They appear in different locations with completely different MACs, but each of them has its own specific IoT vendor MAC prefix.\nI started with “DefaultSSID”. I made an AP that responds to that name and tried to let it onto my AP to understand what is behind this device. The device wanted to connect to an AP with a specific password, so I used the half-handshake attack to try to guess it. The password was easy to crack with common wordlists. So now, I started a new AP with the correct name and password, and voilà, the device connected to it.\nThe next thing was to perform an Nmap scan to find out what services these devices provided, if any. The only port that I got on them was port 80 (TCP) - HTTP service.\nBut I got an HTTP Basic Auth prompt everywhere I got a response from my web fuzzer:\n401 POST/GET 1l 2w 22c http://12.0.0.12/config 401 POST/GET 1l 2w 22c http://12.0.0.12/service 401 POST/GET 1l 2w 22c http://12.0.0.12/update 401 POST/GET 1l 2w 22c http://12.0.0.12/default 401 POST/GET 1l 2w 22c http://12.0.0.12/network 401 POST/GET 1l 2w 22c http://12.0.0.12/server I tried to brute-force the username and password, but without any success. I tried on different devices around me, and everywhere the result was the same: the same port asking for an HTTP Basic username and password that I didn’t know, and it was not an “admin:admin” type of credential.\nThe only interesting thing that I found with a 200 OK response was:\n200 POST/GET 255l 3433w 22950c http://12.0.0.12/license Which, unfortunately, did not contain any useful information because it was some sort of general license…\n/license\nFor months I gave up, because i couldn’t find someone that I know to own this type of device(very sad). Until one day I woke up with the motivation to try one more time to investigate this interesting devices that is almost everywhere wherever I go.\nAgain, I didn’t have much success with the brute-force(I try more than 50k combinations of possible IoT passwords), so this time I started digging on the internet to find more information about these endpoints that I saw on the web fuzzer. After an hour of searching, I found an interesting blog by Alexandre Vicenzi: mitsubishi-wifi-adapter. The screenshots from the blog didn’t speak to me (because I had never seen this web interface before), but the endpoints at the end of the blog spoke a lot to me. I didn’t really see any mention of the SSID that I saw everywhere, though.\nThen, I found that he mentioned someone had figured it out and detailed how to properly interact with it. The author is Ash Hopkins, and this is his repository: mac-577if-e. He created a Python library for this module with is very cool!\nIt was a WiFi air conditioner adapter with part number MAC-577IF-2E. I reviewed his repository, but again, I didn’t find this “DefaultSSID” that I saw everywhere. So I doubted my finding…\nHowever, from his repository, I found credentials for HTTP Basic, I search for one of these devices and make a try and voilà, they worked perfectly. So it really was this device.\nI tried a command like this to verify that it would work for the device connected to my AP:\npython3 ac_control.py --ip --status --format json\nAnd boom, it worked.\nNow, the next thing I needed to do was verify that all these devices I found were really the same type and model, just different physical devices. So, with a little help from AI, I wrote multiple scripts that automate this process: when a device connects to my phone, it saves its location and pulls its status, like temperature and power state and saves in to DB file that I will later use to build a MAP.\nThe idea was to collect some good number of devices around the city without touching them, just to verify how big this finding really was. During a short walk in my neighborhood, I was able to collect more than 50 devices with their statuses.\nThis was scary because this script from GitHub can not only view the temperature, but it can also power off/on the device or change the temperature. I immediately contacted the vendor about this finding and waited for their confirmation! The advisory was published at the following URL - HERE. with CVE Number - CVE-2026-566\nAfter confirmation, I understood that it was very real, and not only in my area. The problem here is that when the device has not been connected to a WiFi AP by its owner, it stays in setup mode and continually searches for this AP for its next instructions. For security reason I can’t provide the actual PoC script.\nAC Units Map\nAdditional Analytics and Findings It is not a secret that corporate EAP also can be owned using this method of Half Handshake just we need to use tools like hostapd-eaphammer. But this will be other topic for other writeup.\nI think Wi-Fi devices are still misunderstood in terms of how they work, how secure they are, and what attack surface they create. On one hand, most tech-savvy people think that if they use a long password, everything will be fine. On the other hand, people who do not understand smart devices but still want the latest model of vacuum cleaner may buy one, but choose not to connect it to Wi-Fi because they think that will remove the “smart features” of the product.\nWe all know that modern devices use MAC randomization to make tracking them more difficult. But while writing my recon script for probe requests, I got an idea: I can tag devices that look for two or more SSIDs and group them together. Modern smartphones use MAC randomization to prevent device tracking. But if you leave Wi-Fi on, this can create another tracking surface.\nFor example, if a smartphone has saved more than two Wi-Fi networks, which is very common, and its Wi-Fi is turned on while it is near me, I can tag these unique SSIDs. When I see a device searching for exactly the same combination of SSIDs stored in the tag, even if the device changes its MAC address, I may still be able to track it based on its unique network signature.\nWIFi Devices map\nConclusion During this reconnaissance, I was also able to find other IoT devices around the city that search for their own SSID. Maybe they hide their secrets too, right? I known people that say they buy devices that are “smart” capable of WiFi or Bluetooth but they never setup them because of afraid that someone can hack it, so this proves that whenever this future is present it can cost integrity of the device or owners data.\nBuying an IoT device, especially a portable one, can open an attack surface on your home or corporate network. But why does this matter?\nWiFi attacks are hard to track to their source because of MAC spoofing and the variable distances from which they can be performed, even through couple of walls. Often, if you don’t have some sort of active monitoring of WiFi and DHCP activities, this can be completely ignored and missed. The owner might never even know that their WiFi has been hacked and used for malicious activities. On the other hand, Bluetooth has the same problem on most cheap Chinese devices that can interact with different UUIDs without any authentication. But that will be a topic for another coming write-up.\n",
+  "wordCount" : "1719",
+  "inLanguage": "en",
+  "datePublished": "2026-06-11T00:00:00Z",
+  "dateModified": "2026-06-11T00:00:00Z",
+  "author":{
+    "@type": "Person",
+    "name": "Zachary Mitev"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/posts/the-secret-live-of-probe-requests/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Messing with Code So You Don’t Have To",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="Messing with Code So You Don’t Have To (Alt + H)">Messing with Code So You Don’t Have To</a>
+            <div class="logo-switches">
+            </div>
+        </div>
+        <ul id="menu">
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      The Secret live of Probe Requests
+    </h1>
+    <div class="post-meta"><span title='2026-06-11 00:00:00 +0000 UTC'>June 11, 2026</span>&nbsp;·&nbsp;<span>9 min</span>&nbsp;·&nbsp;<span>1719 words</span>&nbsp;·&nbsp;<span>Zachary Mitev</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#introduction" aria-label="Introduction">Introduction</a></li>
+                <li>
+                    <a href="#the-findings" aria-label="The Findings">The Findings</a></li>
+                <li>
+                    <a href="#additional-analytics-and-findings" aria-label="Additional Analytics and Findings">Additional Analytics and Findings</a></li>
+                <li>
+                    <a href="#conclusion" aria-label="Conclusion">Conclusion</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h2 id="introduction">Introduction<a hidden class="anchor" aria-hidden="true" href="#introduction">#</a></h2>
+<p>I was always curious about the wireless devices around me, and I spent a lot of time investigating them — not only the standard 802.11 WiFi but other &ldquo;custom&rdquo; RF technologies too.</p>
+<p>Once, during my experimentation with WiFi protocols and how they actually work, I saw the well-known probe requests from one of my IoT devices that I had for a long time, which needed a specific WiFi AP(Access Point) to work. But what happens when this AP is not around it? It continuously sends probe requests over the air with the specific SSID name that it needs.</p>
+<p>This is nothing new; people who work in cybersecurity know that this is how things work. There is also a well-known attack type called a &ldquo;Karma Attack&rdquo;, where you can make a dynamic AP that corresponds to the specific SSID that the device is searching for. So, if the device says, &ldquo;I am looking for &lsquo;MyHomeWifi&rsquo;,&rdquo; the attacker brings up an AP with the same name and waits for the device to try to connect.</p>
+<p>But, from this comes one more problem. If you set the same type of encryption (for example, WPA2/WPA3 etc.), the device that searches for that SSID will send a Half Handshake to the AP. If we capture this, we can still crack it using an offline dictionary attack against the password of the original SSID. So, TL;DR: if you turn on the WiFi on your phone or IoT device (whether portable or not), it is possible for someone to crack the password of your saved networks just by bringing up an AP with the same name as the probe request that the device sends. Nothing new, right?</p>
+<p>But what if we blacklist all the phone vendors (by MAC address, where is possible) to make space for IoT devices, and start this <a href="https://github.com/InnerFireZ/F-Security-APP" title="Go to github">Android NetHunter APP</a> around a big city? I should say that this public script search for all WiFi devices without looking for MAC but u can search for them manually by SSID name. To able to run this script you need GPS demon witch should listen on correspond port.</p>
+<p>I use script specifically for probe requests to find specific, repeatable patterns of SSIDs around the city. I use my specially configured phone for security-related stuff; it is rooted and has the necessary tools to make this happen easily and with minimal effort. I use the internal WiFi card and GPS on the phone to remove the need for additional hardware and make this really portable - All in one device.</p>
+<p><img alt="red phone" loading="lazy" src="/images/pr/red-phone.jpg">
+<em>OnePlus7Pro</em></p>
+<h2 id="the-findings">The Findings<a hidden class="anchor" aria-hidden="true" href="#the-findings">#</a></h2>
+<p>So, after a few attempts to collect probe requests around the city, I got some interesting repeatable SSIDs like <strong>&ldquo;DefaultSSID&rdquo;</strong> and &ldquo;moduletest&rdquo; (I haven&rsquo;t investigated the latter yet, but it is a completely different device). They appear in different locations with completely different MACs, but each of them has its own specific IoT vendor MAC prefix.</p>
+<p>I started with &ldquo;DefaultSSID&rdquo;. I made an AP that responds to that name and tried to let it onto my AP to understand what is behind this device. The device wanted to connect to an AP with a specific password, so I used the half-handshake attack to try to guess it. The password was easy to crack with common wordlists. So now, I started a new AP with the correct name and password, and voilà, the device connected to it.</p>
+<p>The next thing was to perform an Nmap scan to find out what services these devices provided, if any. The only port that I got on them was port <strong>80</strong> (TCP) - HTTP service.</p>
+<p>But I got an HTTP Basic Auth prompt everywhere I got a response from my web fuzzer:</p>
+<pre>
+401     POST/GET        1l        2w       22c http://12.0.0.12/config
+401     POST/GET        1l        2w       22c http://12.0.0.12/service
+401     POST/GET        1l        2w       22c http://12.0.0.12/update
+401     POST/GET        1l        2w       22c http://12.0.0.12/default
+401     POST/GET        1l        2w       22c http://12.0.0.12/network
+401     POST/GET        1l        2w       22c http://12.0.0.12/server
+</pre>
+<p>I tried to brute-force the username and password, but without any success. I tried on different devices around me, and everywhere the result was the same: the same port asking for an HTTP Basic username and password that I didn&rsquo;t know, and it was not an &ldquo;admin:admin&rdquo; type of credential.</p>
+<p>The only interesting thing that I found with a 200 OK response was:</p>
+<pre>200     POST/GET      255l     3433w    22950c http://12.0.0.12/license</pre>
+<p>Which, unfortunately, did not contain any useful information because it was some sort of general license&hellip;</p>
+<p><img alt="license" loading="lazy" src="/images/pr/license.png">
+<em>/license</em></p>
+<p>For months I gave up, because i couldn&rsquo;t find someone that I know to own this type of device(very sad). Until one day I woke up with the motivation to try one more time to investigate this interesting devices that is almost everywhere wherever I go.</p>
+<p>Again, I didn&rsquo;t have much success with the brute-force(I try more than 50k combinations of possible IoT passwords), so this time I started digging on the internet to find more information about these endpoints that I saw on the web fuzzer. After an hour of searching, I found an interesting blog by <strong>Alexandre Vicenzi</strong>: <a href="https://blog.dest-unreach.be/2022/06/04/mitsubishi-wifi-adapter/" title="mitsubishi-wifi-adapter">mitsubishi-wifi-adapter</a>. The screenshots from the blog didn&rsquo;t speak to me (because I had never seen this web interface before), but the endpoints at the end of the blog spoke a lot to me. I didn&rsquo;t really see any mention of the SSID that I saw everywhere, though.</p>
+<p>Then, I found that he mentioned someone had figured it out and detailed how to properly interact with it. The author is <strong>Ash Hopkins</strong>, and this is his repository: <a href="https://github.com/pymitsubishi/mac-577if-e" title="mac-577if-e">mac-577if-e</a>. He created a <strong>Python library</strong> for this module with is very cool!</p>
+<p>It was a  WiFi air conditioner adapter with part number <strong>MAC-577IF-2E</strong>. I reviewed his repository, but again, I didn&rsquo;t find this <strong>&ldquo;DefaultSSID&rdquo;</strong> that I saw everywhere. So I doubted my finding&hellip;</p>
+<p>However, from his repository, I found credentials for HTTP Basic, I search for one of these devices and make a try and voilà, they worked perfectly. So it really was this device.</p>
+<p>I tried a command like this to verify that it would work for the device connected to my AP:</p>
+<p><code>python3 ac_control.py --ip &lt;DEVICE_IP&gt; --status --format json</code></p>
+<p>And boom, it worked.</p>
+<p>Now, the next thing I needed to do was verify that <strong>all</strong> these devices I found were really the same <strong>type</strong> and <strong>model</strong>, just different physical devices. So, with a little help from AI, I wrote multiple scripts that automate this process: when a device connects to my phone, it saves its location and pulls its status, like temperature and power state and saves in to DB file that I will later use to build a MAP.</p>
+<p>The idea was to collect some good number of devices around the city without touching them, just to verify how big this finding really was. During a short walk in my neighborhood, I was able to collect more than <strong>50</strong> devices with their statuses.</p>
+<p>This was scary because this script from GitHub can not only view the temperature, but it can also power off/on the device or change the temperature. I immediately contacted the vendor about this finding and waited for their confirmation! <a href="https://www.mitsubishielectric.com/psirt/vulnerability/pdf/2026-001_en.pdf" title="The advisory was published at the following URL HERE.">The advisory was published at the following URL - HERE.</a> with CVE Number - CVE-2026-566</p>
+<p>After confirmation, I understood that it was very real, and not only in my area. The problem here is that when the device has not been connected to a WiFi AP by its owner, it stays in setup mode and continually searches for this AP for its next instructions. For security reason I can&rsquo;t provide the actual PoC script.</p>
+<p><img alt="AC-map" loading="lazy" src="/images/pr/ac-map.png">
+<em>AC Units Map</em></p>
+<h2 id="additional-analytics-and-findings">Additional Analytics and Findings<a hidden class="anchor" aria-hidden="true" href="#additional-analytics-and-findings">#</a></h2>
+<p>It is not a secret that corporate <strong>EAP</strong> also can be <strong>owned</strong> using this method of Half Handshake just we need to use tools like <strong>hostapd-eaphammer</strong>. But this will be other topic for other writeup.</p>
+<p>I think Wi-Fi devices are still misunderstood in terms of how they work, how secure they are, and what attack surface they create. On one hand, most tech-savvy people think that if they use a long password, everything will be fine. On the other hand, people who do not understand smart devices but still want the latest model of vacuum cleaner may buy one, but choose not to connect it to Wi-Fi because they think that will remove the “smart features” of the product.</p>
+<p>We all know that modern devices use MAC randomization to make tracking them more difficult. But while writing my recon script for probe requests, I got an idea: I can tag devices that look for two or more SSIDs and group them together. Modern smartphones use MAC randomization to prevent device tracking. But if you leave Wi-Fi on, this can create another tracking surface.</p>
+<p>For example, if a smartphone has saved more than two Wi-Fi networks, which is very common, and its Wi-Fi is turned on while it is near me, I can tag these unique SSIDs. When I see a device searching for exactly the same combination of SSIDs stored in the tag, even if the device changes its MAC address, I may still be able to track it based on its unique network signature.</p>
+<p><img alt="track devices" loading="lazy" src="/images/pr/track-devices.png">
+<em>WIFi Devices map</em></p>
+<h2 id="conclusion">Conclusion<a hidden class="anchor" aria-hidden="true" href="#conclusion">#</a></h2>
+<p>During this reconnaissance, I was also able to find other <strong>IoT</strong> devices around the city that search for their own SSID. Maybe they hide their secrets too, right?
+I known people that say they buy devices that are &ldquo;smart&rdquo; capable of WiFi or Bluetooth but they never setup them because of afraid that someone can hack it, so this proves that whenever this future is present it can cost integrity of the device or owners data.</p>
+<p>Buying an IoT device, especially a portable one, can open an attack surface on your home or corporate network. But why does this matter?</p>
+<ul>
+<li>WiFi attacks are hard to track to their source because of MAC spoofing and the variable distances from which they can be performed, even through couple of walls.</li>
+<li>Often, if you don&rsquo;t have some sort of active monitoring of WiFi and DHCP activities, this can be completely ignored and missed. The owner might never even know that their WiFi has been hacked and used for malicious activities.</li>
+</ul>
+<p>On the other hand, Bluetooth has the same problem on most cheap Chinese devices that can interact with different UUIDs without any authentication. But that will be a topic for another coming write-up.</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/wifi/">WiFi</a></li>
+      <li><a href="http://localhost:1313/tags/iot/">IoT</a></li>
+      <li><a href="http://localhost:1313/tags/wireless/">Wireless</a></li>
+      <li><a href="http://localhost:1313/tags/security/">Security</a></li>
+      <li><a href="http://localhost:1313/tags/probe-request/">Probe Request</a></li>
+      <li><a href="http://localhost:1313/tags/poc/">PoC</a></li>
+      <li><a href="http://localhost:1313/tags/cve-2026-566/">CVE-2026-566</a></li>
+      <li><a href="http://localhost:1313/tags/mitsubishi/">Mitsubishi</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="next" href="http://localhost:1313/posts/take-down-the-stealers-for-fun/">
+    <span class="title">Next »</span>
+    <br>
+    <span>Take Down The Stealers For Fun</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Messing with Code So You Don’t Have To</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a><script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.0.8/medium-zoom.min.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (typeof mediumZoom === "function") {
+      mediumZoom(".post-content img");
+    } else {
+      console.log("medium-zoom did not load");
+    }
+  });
+</script>
+
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

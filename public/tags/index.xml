@@ -4,29 +4,99 @@
     <title>Tags on Messing with Code So You Don’t Have To</title>
     <link>http://localhost:1313/tags/</link>
     <description>Recent content in Tags on Messing with Code So You Don’t Have To</description>
-    <generator>Hugo -- 0.146.0</generator>
+    <generator>Hugo -- 0.161.1</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 03 Feb 2026 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 11 Jun 2026 00:00:00 +0000</lastBuildDate>
     <atom:link href="http://localhost:1313/tags/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>Flask</title>
-      <link>http://localhost:1313/tags/flask/</link>
-      <pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/tags/flask/</guid>
+      <title>CVE-2026-566</title>
+      <link>http://localhost:1313/tags/cve-2026-566/</link>
+      <pubDate>Thu, 11 Jun 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/cve-2026-566/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>IoT</title>
+      <link>http://localhost:1313/tags/iot/</link>
+      <pubDate>Thu, 11 Jun 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/iot/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Mitsubishi</title>
+      <link>http://localhost:1313/tags/mitsubishi/</link>
+      <pubDate>Thu, 11 Jun 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/mitsubishi/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>PoC</title>
+      <link>http://localhost:1313/tags/poc/</link>
+      <pubDate>Thu, 11 Jun 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/poc/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Probe Request</title>
+      <link>http://localhost:1313/tags/probe-request/</link>
+      <pubDate>Thu, 11 Jun 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/probe-request/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Security</title>
+      <link>http://localhost:1313/tags/security/</link>
+      <pubDate>Thu, 11 Jun 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/security/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>WiFi</title>
+      <link>http://localhost:1313/tags/wifi/</link>
+      <pubDate>Thu, 11 Jun 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/wifi/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Wireless</title>
+      <link>http://localhost:1313/tags/wireless/</link>
+      <pubDate>Thu, 11 Jun 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/wireless/</guid>
       <description></description>
     </item>
     <item>
       <title>Hacking</title>
       <link>http://localhost:1313/tags/hacking/</link>
-      <pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate>
+      <pubDate>Wed, 11 Mar 2026 00:00:00 +0000</pubDate>
       <guid>http://localhost:1313/tags/hacking/</guid>
       <description></description>
     </item>
     <item>
       <title>Malware</title>
       <link>http://localhost:1313/tags/malware/</link>
-      <pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate>
+      <pubDate>Wed, 11 Mar 2026 00:00:00 +0000</pubDate>
       <guid>http://localhost:1313/tags/malware/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Stealer</title>
+      <link>http://localhost:1313/tags/stealer/</link>
+      <pubDate>Wed, 11 Mar 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/stealer/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Threat-Intel</title>
+      <link>http://localhost:1313/tags/threat-intel/</link>
+      <pubDate>Wed, 11 Mar 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/threat-intel/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Flask</title>
+      <link>http://localhost:1313/tags/flask/</link>
+      <pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/flask/</guid>
       <description></description>
     </item>
     <item>
@@ -51,24 +121,17 @@
       <description></description>
     </item>
     <item>
-      <title>Security</title>
-      <link>http://localhost:1313/tags/security/</link>
-      <pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/tags/security/</guid>
+      <title>Backdoor</title>
+      <link>http://localhost:1313/tags/backdoor/</link>
+      <pubDate>Tue, 13 Jan 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/backdoor/</guid>
       <description></description>
     </item>
     <item>
-      <title>Stealer</title>
-      <link>http://localhost:1313/tags/stealer/</link>
-      <pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/tags/stealer/</guid>
-      <description></description>
-    </item>
-    <item>
-      <title>Threat-Intel</title>
-      <link>http://localhost:1313/tags/threat-intel/</link>
-      <pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/tags/threat-intel/</guid>
+      <title>CVE-2026-31077</title>
+      <link>http://localhost:1313/tags/cve-2026-31077/</link>
+      <pubDate>Tue, 13 Jan 2026 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/cve-2026-31077/</guid>
       <description></description>
     </item>
     <item>
@@ -100,7 +163,7 @@
       <description></description>
     </item>
     <item>
-      <title>Uart</title>
+      <title>UART</title>
       <link>http://localhost:1313/tags/uart/</link>
       <pubDate>Tue, 13 Jan 2026 00:00:00 +0000</pubDate>
       <guid>http://localhost:1313/tags/uart/</guid>
