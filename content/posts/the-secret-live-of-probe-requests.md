@@ -3,7 +3,7 @@ title: "The Secret live of Probe Requests"
 date: 2026-06-11
 author: "Zachary Mitev"
 draft: false
-tags: ["WiFi", "IoT", "wireless", "security", "probe request", "PoC", "CVE-2026-566", "mitsubishi"]
+tags: ["WiFi", "IoT", "wireless", "security", "probe request", "PoC", "CVE-2026-5667", "mitsubishi"]
 summary: "The Secret Life of Probe Requests: How IoT Devices Use 802.11 Wireless Technology."
 showToc: true
 TocOpen: true
@@ -74,7 +74,7 @@ Now, the next thing I needed to do was verify that **all** these devices I found
 
 The idea was to collect some good number of devices around the city without touching them, just to verify how big this finding really was. During a short walk in my neighborhood, I was able to collect more than **50** devices with their statuses. 
 
-This was scary because this script from GitHub can not only view the temperature, but it can also power off/on the device or change the temperature. I immediately contacted the vendor about this finding and waited for their confirmation! [The advisory was published at the following URL - HERE.](https://www.mitsubishielectric.com/psirt/vulnerability/pdf/2026-001_en.pdf "The advisory was published at the following URL HERE.") with CVE Number - CVE-2026-566
+This was scary because this script from GitHub can not only view the temperature, but it can also power off/on the device or change the temperature. I immediately contacted the vendor about this finding and waited for their confirmation! [The advisory was published at the following URL - HERE.](https://www.mitsubishielectric.com/psirt/vulnerability/pdf/2026-001_en.pdf "The advisory was published at the following URL HERE.") with CVE Number - CVE-2026-5667
 
 After confirmation, I understood that it was very real, and not only in my area. The problem here is that when the device has not been connected to a WiFi AP by its owner, it stays in setup mode and continually searches for this AP for its next instructions. For security reason I can't provide the actual PoC script.
 
