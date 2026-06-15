@@ -76,6 +76,8 @@ The idea was to collect some good number of devices around the city without touc
 
 This was scary because this script from GitHub can not only view the temperature, but it can also power off/on the device or change the temperature. I immediately contacted the vendor about this finding and waited for their confirmation! [The advisory was published at the following URL - HERE.](https://www.mitsubishielectric.com/psirt/vulnerability/pdf/2026-001_en.pdf "The advisory was published at the following URL HERE.") with CVE Number - CVE-2026-5667
 
+Affected product types include: Room air conditioners, Wi-Fi LAN adapters for air conditioners, Refrigerators, Heat-pump water heaters / HEMS devices, Bathroom drying / heating / ventilation units, Lossnay ventilation / smart ventilation switches, IH cooktops, Rice cookers.
+
 After confirmation, I understood that it was very real, and not only in my area. The problem here is that when the device has not been connected to a WiFi AP by its owner, it stays in setup mode and continually searches for this AP for its next instructions. For security reason I can't provide the actual PoC script.
 
 ![AC-map](/images/pr/ac-map.png)
