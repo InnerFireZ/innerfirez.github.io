@@ -57,16 +57,5 @@ socialIcons = [
     page     = ["HTML"]
                                                                                                                                                                                           
 [sitemap]
-    changefreq = 'monthly'                                                                                                                                                                
-    priority = 0.5      
-
-[mediaTypes]                                                                                                                                                                            
-    [mediaTypes."application/xml"]                                                                                                                                                        
-      suffixes = ["xml"]                                    
-
-[outputFormats]                                                                                                                                                                         
-    [outputFormats.sitemap]
-      mediaType = "application/xml"                                                                                                                                                       
-      baseName = "sitemap"                                  
-      isPlainText = true
-      notAlternative = true    
+    changefreq = 'monthly'
+    priority = 0.5
