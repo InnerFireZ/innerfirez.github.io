@@ -1,10 +1,15 @@
 ---
-title: "The Secret live of Probe Requests"
+title: "CVE-2026-5667: The Secret Life of Probe Requests – Mitsubishi MAC-577IF-2E WiFi Adapter"
 date: 2026-06-11
 author: "Zachary Mitev"
 draft: false
-tags: ["WiFi", "IoT", "wireless", "security", "probe request", "PoC", "CVE-2026-5667", "mitsubishi"]
-summary: "The Secret Life of Probe Requests: How IoT Devices Use 802.11 Wireless Technology."
+tags: ["CVE-2026-5667", "WiFi", "IoT", "wireless", "security", "probe request", "PoC", "mitsubishi", "MAC-577IF-2E", "HVAC", "vulnerability"]
+keywords: ["CVE-2026-5667", "Mitsubishi MAC-577IF-2E", "WiFi adapter vulnerability", "probe request attack", "IoT security", "HVAC exploit", "air conditioner hack", "DefaultSSID"]
+description: "CVE-2026-5667 – Unauthenticated remote control of Mitsubishi MAC-577IF-2E WiFi air conditioner adapters discovered via citywide probe request reconnaissance. Full technical writeup with PoC methodology."
+summary: "CVE-2026-5667: Unauthenticated remote control of Mitsubishi MAC-577IF-2E WiFi air conditioner adapters discovered via probe request reconnaissance across a city."
+canonicalURL: "https://innerfirez.github.io/posts/the-secret-life-of-probe-requests/"
+slug: "the-secret-life-of-probe-requests"
+aliases: ["/posts/the-secret-live-of-probe-requests/"]
 showToc: true
 TocOpen: true
 ---
